@@ -15,6 +15,7 @@ import { createOllama } from 'ai-sdk-ollama'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { i18n } from 'src/boot/i18n'
 import { fetch } from './platform-api'
+import { createBedrock } from './aws-bedrock'
 
 const { t } = i18n.global
 
@@ -223,6 +224,70 @@ const ProviderTypes: ProviderType[] = [
     settings: Object(commonSettings),
     initialSettings: {},
     constructor: createMistral
+  },
+  {
+    name: 'aws-bedrock',
+    label: 'AWS Bedrock',
+    avatar: { type: 'svg', name: 'aws-bedrock', hue: 30 },
+    settings: Object({
+      region: String({
+        title: 'AWS Region',
+        description: 'e.g., ap-south-1, us-east-1',
+        default: 'ap-south-1'
+      }),
+      accessKeyId: String({
+        title: 'Access Key ID',
+        format: 'password'
+      }),
+      secretAccessKey: String({
+        title: 'Secret Access Key',
+        format: 'password'
+      })
+    }),
+    initialSettings: {
+      region: 'ap-south-1'
+    },
+    constructor: createBedrock,
+    getModelList: async () => {
+      return [
+        // Mistral models
+        'mistral.mistral-large-2402-v1:0',
+        'mistral.mistral-large-2407-v1:0',
+        'mistral.mistral-small-2402-v1:0',
+        'mistral.mixtral-8x7b-instruct-v0:1',
+
+        // Claude models
+        'anthropic.claude-3-haiku-20240307-v1:0',
+        'anthropic.claude-3-sonnet-20240229-v1:0',
+        'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'anthropic.claude-3-5-sonnet-20241022-v2:0',
+
+        // Meta Llama models
+        'meta.llama3-8b-instruct-v1:0',
+        'meta.llama3-70b-instruct-v1:0',
+        'meta.llama3-1-8b-instruct-v1:0',
+        'meta.llama3-1-70b-instruct-v1:0',
+        'meta.llama3-2-1b-instruct-v1:0',
+        'meta.llama3-2-3b-instruct-v1:0',
+        'meta.llama3-2-11b-instruct-v1:0',
+        'meta.llama3-2-90b-instruct-v1:0',
+
+        // Amazon Nova models
+        'amazon.nova-micro-v1:0',
+        'amazon.nova-lite-v1:0',
+        'amazon.nova-pro-v1:0',
+
+        // Cohere models
+        'cohere.command-r-v1:0',
+        'cohere.command-r-plus-v1:0',
+
+        // AI21 Labs
+        'ai21.jamba-instruct-v1:0',
+
+        // Stability AI
+        'stability.stable-diffusion-xl-v1'
+      ]
+    }
   }
 ]
 
@@ -322,7 +387,39 @@ const models: Model[] = [
   { name: 'grok-3-mini-beta', inputTypes: InputTypes.textOnly },
   { name: 'grok-3-mini-fast', inputTypes: InputTypes.textOnly },
   { name: 'grok-3-mini-fast-beta', inputTypes: InputTypes.textOnly },
-  { name: 'grok-4', inputTypes: InputTypes.commonVision }
+  { name: 'grok-4', inputTypes: InputTypes.commonVision },
+  { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'mistral.mistral-large-2407-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly },
+
+  // Claude models on Bedrock
+  { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision },
+  { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision },
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision },
+  { name: 'anthropic.claude-3-5-sonnet-20241022-v2:0', inputTypes: InputTypes.claudePdf },
+
+  // Meta Llama models on Bedrock
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision },
+  { name: 'meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision },
+
+  // Amazon Nova models
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision },
+
+  // Cohere models
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly },
+
+  // AI21 Labs
+  { name: 'ai21.jamba-instruct-v1:0', inputTypes: InputTypes.textOnly }
 ]
 const modelOptions = models.map(m => m.name)
 const dialogOptions = {
