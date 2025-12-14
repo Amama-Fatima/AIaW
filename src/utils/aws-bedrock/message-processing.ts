@@ -1,0 +1,178 @@
+/**
+ * Converts AI SDK messages to Claude's format
+ *
+ * Handles:
+ * - System messages (extracted separately)
+ * - Tool results (converted to user messages with tool_result blocks)
+ * - User/Assistant messages with text, tool-call, and image content
+ *
+ * @param prompt - Array of AI SDK messages
+ * @returns Array of Claude-formatted messages (excludes system)
+ */
+export function convertMessages(prompt: any[]): any[] {
+  return prompt.map((msg: any) => {
+    if (msg.role === 'system') {
+      return null
+    }
+
+    if (msg.role === 'tool') {
+      return {
+        role: 'user',
+        content: msg.content.map((c: any) => {
+          // Extract tool result from AI SDK's output structure
+          const resultData = c.output || c.result
+
+          let contentText
+          if (resultData && typeof resultData === 'object' && resultData.type === 'content' && resultData.value) {
+            // Format: { type: 'content', value: [{ type: 'text', text: '...' }, ...] }
+            contentText = resultData.value
+              .map((v: any) => v.type === 'text' ? v.text : JSON.stringify(v))
+              .join('\n')
+          } else {
+            // Fallback for other formats
+            contentText = typeof resultData === 'string' ? resultData : JSON.stringify(resultData)
+          }
+
+          return {
+            type: 'tool_result',
+            tool_use_id: c.toolCallId,
+            content: contentText
+          }
+        })
+      }
+    }
+
+    // Handle regular user/assistant messages
+    return {
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: Array.isArray(msg.content)
+        ? msg.content.map((c: any) => {
+          if (c.type === 'text') return { type: 'text', text: c.text }
+
+          if (c.type === 'tool-call') {
+            // Parse tool call arguments
+            let parsedInput = {}
+
+            if (typeof c.input === 'string') {
+              try {
+                parsedInput = JSON.parse(c.input)
+              } catch (e) {
+                console.warn('❌ Failed to parse tool input string:', c.input, e)
+              }
+            } else if (c.input && typeof c.input === 'object') {
+              parsedInput = c.input
+            } else if (c.args) {
+              parsedInput = c.args
+            }
+
+            return {
+              type: 'tool_use',
+              id: c.toolCallId,
+              name: c.toolName,
+              input: parsedInput
+            }
+          }
+
+          if (c.type === 'file' && c.mimeType?.startsWith('image/')) {
+            return {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: c.mimeType,
+                data: c.data
+              }
+            }
+          }
+
+          return c
+        })
+        : typeof msg.content === 'string'
+          ? [{ type: 'text', text: msg.content }]
+          : msg.content
+    }
+  }).filter(Boolean)
+}
+
+/**
+ * Filters out messages with empty content
+ *
+ * Empty messages can cause API errors, so we remove them
+ *
+ * @param messages - Array of messages
+ * @returns Filtered array without empty messages
+ */
+export function filterEmptyMessages(messages: any[]): any[] {
+  return messages.filter(msg => {
+    if (Array.isArray(msg.content)) {
+      return msg.content.length > 0
+    }
+    return msg.content && msg.content !== ''
+  })
+}
+
+/**
+ * Merges consecutive messages with the same role
+ *
+ * Claude requires alternating user/assistant roles. If the AI SDK produces
+ * consecutive messages with the same role, we must merge them.
+ *
+ * Example:
+ * [
+ *   { role: 'user', content: [block1, block2] },
+ *   { role: 'user', content: [block3] }
+ * ]
+ * becomes:
+ * [
+ *   { role: 'user', content: [block1, block2, block3] }
+ * ]
+ *
+ * @param messages - Array of messages
+ * @returns Array with consecutive same-role messages merged
+ */
+export function mergeConsecutiveMessages(messages: any[]): any[] {
+  const merged = []
+
+  for (let i = 0; i < messages.length; i++) {
+    const current = messages[i]
+
+    if (i + 1 < messages.length && messages[i + 1].role === current.role) {
+      const mergedContent = [...(Array.isArray(current.content) ? current.content : [current.content])]
+      let j = i + 1
+
+      while (j < messages.length && messages[j].role === current.role) {
+        const nextContent = messages[j].content
+        mergedContent.push(...(Array.isArray(nextContent) ? nextContent : [nextContent]))
+        j++
+      }
+
+      merged.push({
+        role: current.role,
+        content: mergedContent
+      })
+
+      i = j - 1
+    } else {
+      merged.push(current)
+    }
+  }
+
+  return merged
+}
+
+/**
+ * Complete message processing pipeline for Claude
+ *
+ * Applies all three transformation steps:
+ * 1. Convert to Claude format
+ * 2. Filter empty messages
+ * 3. Merge consecutive same-role messages
+ *
+ * @param prompt - Raw AI SDK prompt
+ * @returns Processed messages ready for Claude API
+ */
+export function processMessagesForClaude(prompt: any[]): any[] {
+  const converted = convertMessages(prompt)
+  const filtered = filterEmptyMessages(converted)
+  const merged = mergeConsecutiveMessages(filtered)
+  return merged
+}
