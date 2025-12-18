@@ -35,7 +35,7 @@ export function convertPromptToBedrock(
     return body
   }
 
-  if (modelId.startsWith('meta.llama')) {
+  if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     return convertToLlamaFormat(prompt, settings)
   }
 

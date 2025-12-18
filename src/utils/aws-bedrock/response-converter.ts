@@ -66,7 +66,13 @@ function convertClaudeResponse(
 }
 
 function convertLlamaResponse(responseBody: any): Partial<StandardResponse> {
-  const generatedText = responseBody.generation || ''
+  let generatedText = responseBody.generation || ''
+
+  generatedText = generatedText
+    .replace(/<\|start_header_id\|>.*?<\|end_header_id\|>\s*/gs, '')
+    .replace(/.*<\|end_header_id\|>\s*/g, '')
+    .replace(/<\|eot_id\|>/g, '')
+    .trim()
 
   // Try to parse tool calls from JSON in response
   const toolCallMatch = generatedText.match(/\{"tool":\s*"([^"]+)",\s*"parameters":\s*(\{.*?\})\}/s)
@@ -237,7 +243,7 @@ export function convertBedrockResponse(
 
   if (modelId.startsWith('anthropic.')) {
     partial = convertClaudeResponse(responseBody, toolMapping)
-  } else if (modelId.startsWith('meta.llama')) {
+  } else if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     partial = convertLlamaResponse(responseBody)
   } else if (modelId.startsWith('mistral.')) {
     partial = convertMistralResponse(responseBody)
