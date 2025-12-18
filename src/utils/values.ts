@@ -417,9 +417,9 @@ const models: Model[] = [
   { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // fixed
 
-  // AI21 Labs - NEW models
-  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // Malformed input request: #: required key [messages] not found#: extraneous key [prompt] is not permitted, please reformat your input and try again.
-  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // Malformed input request: #: required key [messages] not found#: extraneous key [prompt] is not permitted, please reformat your input and try again.
+  // AI21 Labs
+  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // fixed
 ]
 const modelOptions = models.map(m => m.name)
 const dialogOptions = {

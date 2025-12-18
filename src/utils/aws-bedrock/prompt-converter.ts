@@ -4,7 +4,8 @@ import {
   convertToMistralFormat,
   convertToNovaFormat,
   convertToCohereFormat,
-  convertToGenericFormat
+  convertToGenericFormat,
+  convertToJambaFormat
 } from './converters/other-models'
 import type { BedrockRequestBody } from './types'
 
@@ -49,6 +50,9 @@ export function convertPromptToBedrock(
 
   if (modelId.startsWith('cohere.')) {
     return convertToCohereFormat(prompt, settings)
+  }
+  if (modelId.startsWith('ai21.')) {
+    return convertToJambaFormat(prompt, settings)
   }
 
   return convertToGenericFormat(prompt, settings)
