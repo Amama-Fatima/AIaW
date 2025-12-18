@@ -190,8 +190,13 @@ export function convertToCohereFormat(prompt: any[], settings: any): any {
     message: messages[messages.length - 1]?.message || '',
     chat_history: messages.slice(0, -1),
     max_tokens: settings.maxTokens || 2048,
-    temperature: settings.temperature,
-    p: settings.topP
+    temperature: settings.temperature
+  }
+
+  if (settings.topP !== undefined) {
+    body.p = Math.min(settings.topP, 0.99)
+  } else {
+    body.p = 0.99
   }
 
   if (settings.tools && settings.tools.length > 0) {

@@ -414,8 +414,8 @@ const models: Model[] = [
   { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // fixed
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #/p: 1 is not less or equal to 0.99, please reformat your input and try again.
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #/p: 1 is not less or equal to 0.99, please reformat your input and try again.
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // fixed
 
   // AI21 Labs - NEW models
   { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // Malformed input request: #: required key [messages] not found#: extraneous key [prompt] is not permitted, please reformat your input and try again.
