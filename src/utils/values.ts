@@ -394,32 +394,32 @@ const models: Model[] = [
   { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly },
 
   // Claude models on Bedrock
-  { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision },
-  { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision },
-  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision },
-  { name: 'anthropic.claude-3-5-sonnet-20241022-v2:0', inputTypes: InputTypes.claudePdf },
+  { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision }, // ✅
+  { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision }, // ✅
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // Failed to summarize conversation
 
   // Meta Llama models on Bedrock
-  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision },
-  { name: 'meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision },
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // model response format issue
+  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // model response format issue
+  { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
+  { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, //  error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
+  { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
+  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
+  { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
+  { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // error saying Malformed input request: #: extraneous key [max_tokens] is not permitted, please reformat your input and try again.
 
   // Amazon Nova models
-  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision },
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // ✅
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // ✅ summarization format issue
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // ✅
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #/p: 1 is not less or equal to 0.99, please reformat your input and try again.
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // error saying Malformed input request: #/p: 1 is not less or equal to 0.99, please reformat your input and try again.
 
-  // AI21 Labs
-  { name: 'ai21.jamba-instruct-v1:0', inputTypes: InputTypes.textOnly }
+  // AI21 Labs - NEW models
+  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // Malformed input request: #: required key [messages] not found#: extraneous key [prompt] is not permitted, please reformat your input and try again.
+  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // Malformed input request: #: required key [messages] not found#: extraneous key [prompt] is not permitted, please reformat your input and try again.
 ]
 const modelOptions = models.map(m => m.name)
 const dialogOptions = {
