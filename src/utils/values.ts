@@ -396,10 +396,10 @@ const models: Model[] = [
   // Claude models on Bedrock
   { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
   { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
-  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // Failed to summarize conversation
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // Failed to summarize conversation - sometimes works sometimes doesnt
 
   // Meta Llama models on Bedrock
-  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // does not work with mcp
   { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
   { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed

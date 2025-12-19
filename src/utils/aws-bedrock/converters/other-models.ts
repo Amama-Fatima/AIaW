@@ -4,19 +4,40 @@ export function convertToLlamaFormat(prompt: any[], settings: any): any {
 
   if (hasTools) {
     const toolDescriptions = settings.tools.map((tool: any) => {
-      return `Tool: ${tool.name}\nDescription: ${tool.description}\nParameters: ${JSON.stringify(tool.parameters)}`
+      const params = JSON.stringify(tool.parameters, null, 2)
+      return `### ${tool.name}\n${tool.description}\n\nParameters schema:\n${params}\n\nTo use this tool, respond with:\n{"tool": "${tool.name}", "parameters": {...}}`
     }).join('\n\n')
 
-    formattedPrompt += `<|start_header_id|>system<|end_header_id|>\n\nYou have access to the following tools:\n\n${toolDescriptions}\n\nTo use a tool, respond with a JSON object in this format:\n{"tool": "tool_name", "parameters": {...}}<|eot_id|>\n`
+    formattedPrompt += `<|start_header_id|>system<|end_header_id|>\n\nYou are a helpful assistant with access to tools. When you need to use a tool, respond with ONLY a JSON object in this exact format:\n\n{"tool": "tool_name", "parameters": {your parameters here}}\n\nDo not add any explanation before or after the JSON. Just output the JSON.\n\nAfter receiving tool results, you should analyze them and provide a helpful response to the user based on what the tool returned.\n\nAvailable tools:\n\n${toolDescriptions}<|eot_id|>\n`
   }
 
   formattedPrompt += prompt.map((msg: any) => {
     if (msg.role === 'system') return ''
 
     if (msg.role === 'tool') {
-      const results = msg.content.map((c: any) =>
-        `Tool ${c.toolCallId} result: ${typeof c.result === 'string' ? c.result : JSON.stringify(c.result)}`
-      ).join('\n')
+      const results = msg.content.map((c: any) => {
+        let resultText = ''
+        if (typeof c.result === 'string') {
+          resultText = c.result
+        } else if (Array.isArray(c.result)) {
+          resultText = c.result.map((item: any) => {
+            if (item.type === 'text') {
+              try {
+                const parsed = JSON.parse(item.contentText || item.text || '')
+                return JSON.stringify(parsed, null, 2)
+              } catch {
+                return item.contentText || item.text || ''
+              }
+            }
+            return JSON.stringify(item)
+          }).join('\n')
+        } else {
+          resultText = JSON.stringify(c.result, null, 2)
+        }
+
+        return `[TOOL RESULT from ${c.toolName || 'tool'}]\n${resultText}\n[END TOOL RESULT]`
+      }).join('\n\n')
+
       return `<|start_header_id|>user<|end_header_id|>\n\n${results}<|eot_id|>`
     }
 
@@ -33,6 +54,8 @@ export function convertToLlamaFormat(prompt: any[], settings: any): any {
 
     return `<|start_header_id|>${role}<|end_header_id|>\n\n${content}<|eot_id|>`
   }).filter(Boolean).join('\n')
+
+  formattedPrompt += '\n<|start_header_id|>assistant<|end_header_id|>\n\n'
 
   return {
     prompt: formattedPrompt,

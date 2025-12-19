@@ -65,7 +65,7 @@ function convertClaudeResponse(
   }
 }
 
-function convertLlamaResponse(responseBody: any): Partial<StandardResponse> {
+export function convertLlamaResponse(responseBody: any): any {
   let generatedText = responseBody.generation || ''
 
   generatedText = generatedText
@@ -74,13 +74,41 @@ function convertLlamaResponse(responseBody: any): Partial<StandardResponse> {
     .replace(/<\|eot_id\|>/g, '')
     .trim()
 
-  // Try to parse tool calls from JSON in response
-  const toolCallMatch = generatedText.match(/\{"tool":\s*"([^"]+)",\s*"parameters":\s*(\{.*?\})\}/s)
+  let toolCallMatch = null
+
+  toolCallMatch = generatedText.match(/\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"parameters"\s*:\s*(\{[^}]*\}|\{.*?\})\s*\}/s)
+
+  if (!toolCallMatch) {
+    toolCallMatch = generatedText.match(/\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"args"\s*:\s*(\{[^}]*\}|\{.*?\})\s*\}/s)
+  }
+
+  if (!toolCallMatch) {
+    const jsonMatch = generatedText.match(/\{[^}]*"tool"[^}]*\}/s)
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0])
+        if (parsed.tool) {
+          toolCallMatch = [
+            jsonMatch[0],
+            parsed.tool,
+            JSON.stringify(parsed.parameters || parsed.args || {})
+          ]
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }
 
   let content: any[]
   if (toolCallMatch) {
     const toolName = toolCallMatch[1]
-    const toolParams = JSON.parse(toolCallMatch[2])
+    let toolParams
+    try {
+      toolParams = JSON.parse(toolCallMatch[2])
+    } catch (e) {
+      toolParams = {}
+    }
 
     content = [{
       type: 'tool-call' as const,
