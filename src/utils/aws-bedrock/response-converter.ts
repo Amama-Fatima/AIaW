@@ -1,5 +1,3 @@
-// response-converter.ts - Converts Bedrock responses to AI SDK formatx
-
 import type {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason
@@ -68,11 +66,16 @@ function convertClaudeResponse(
 export function convertLlamaResponse(responseBody: any): any {
   let generatedText = responseBody.generation || ''
 
+  // Clean up the response
   generatedText = generatedText
     .replace(/<\|start_header_id\|>.*?<\|end_header_id\|>\s*/gs, '')
     .replace(/.*<\|end_header_id\|>\s*/g, '')
     .replace(/<\|eot_id\|>/g, '')
     .trim()
+
+  console.log('=== GENERATED TEXT ===')
+  console.log(generatedText)
+  console.log('=== END GENERATED TEXT ===')
 
   let toolCallMatch = null
 
@@ -95,8 +98,15 @@ export function convertLlamaResponse(responseBody: any): any {
           ]
         }
       } catch (e) {
-        // Ignore parse errors
+        console.error('Failed to parse potential tool call JSON:', e)
       }
+    }
+  }
+
+  if (!toolCallMatch) {
+    const multiLineMatch = generatedText.match(/\{\s*"tool"\s*:\s*"([^"]+)"[\s\S]*?"parameters"\s*:\s*(\{[\s\S]*?\})\s*\}/m)
+    if (multiLineMatch) {
+      toolCallMatch = multiLineMatch
     }
   }
 
@@ -107,8 +117,14 @@ export function convertLlamaResponse(responseBody: any): any {
     try {
       toolParams = JSON.parse(toolCallMatch[2])
     } catch (e) {
+      console.error('Failed to parse tool parameters:', toolCallMatch[2])
       toolParams = {}
     }
+
+    console.log('=== TOOL CALL DETECTED ===')
+    console.log('Tool:', toolName)
+    console.log('Parameters:', toolParams)
+    console.log('=== END TOOL CALL ===')
 
     content = [{
       type: 'tool-call' as const,
@@ -117,6 +133,8 @@ export function convertLlamaResponse(responseBody: any): any {
       args: toolParams
     }]
   } else {
+    console.log('=== NO TOOL CALL DETECTED ===')
+    console.log('Returning as text response')
     content = [{ type: 'text' as const, text: generatedText }]
   }
 
