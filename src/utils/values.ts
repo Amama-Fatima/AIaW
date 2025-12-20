@@ -387,9 +387,11 @@ const models: Model[] = [
   { name: 'grok-3-mini-fast', inputTypes: InputTypes.textOnly },
   { name: 'grok-3-mini-fast-beta', inputTypes: InputTypes.textOnly },
   { name: 'grok-4', inputTypes: InputTypes.commonVision },
+
+  // Mistral models on Bedrock
   { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'mistral.mistral-large-2407-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.mistral.mistral-large-2407-v1:0', inputTypes: InputTypes.textOnly }, // not working
+  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly }, // summarization not working
   { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly },
 
   // Claude models on Bedrock

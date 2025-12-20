@@ -1,8 +1,8 @@
 import { convertToClaudeFormat } from './converters/claude'
+import { convertToNovaFormat } from './converters/nova'
 import {
   convertToLlamaFormat,
   convertToMistralFormat,
-  convertToNovaFormat,
   convertToCohereFormat,
   convertToGenericFormat,
   convertToJambaFormat
@@ -40,7 +40,7 @@ export function convertPromptToBedrock(
     return convertToLlamaFormat(prompt, settings)
   }
 
-  if (modelId.startsWith('mistral.')) {
+  if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
     return convertToMistralFormat(prompt, settings)
   }
 

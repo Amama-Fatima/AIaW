@@ -149,47 +149,85 @@ function convertMistralResponse(responseBody: any): Partial<StandardResponse> {
 
   let content: any[]
   if (toolCallMatch) {
-    const toolCall = JSON.parse(toolCallMatch[1])
-    content = [{
-      type: 'tool-call' as const,
-      toolCallId: `call_${Date.now()}`,
-      toolName: toolCall.name,
-      args: toolCall.arguments
-    }]
+    try {
+      const toolCall = JSON.parse(toolCallMatch[1])
+      content = [{
+        type: 'tool-call' as const,
+        toolCallId: `call_${Date.now()}`,
+        toolName: toolCall.name,
+        args: toolCall.arguments
+      }]
+    } catch {
+      content = [{ type: 'text' as const, text: generatedText }]
+    }
   } else {
     content = [{ type: 'text' as const, text: generatedText }]
   }
 
   return {
     content,
-    finishReason: 'stop',
-    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+    finishReason: responseBody.stop_reason || 'stop',
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0
+    }
   }
 }
 
 function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
   const output = responseBody.output?.message
 
-  const content = output?.content?.map((item: any) => {
+  const content = output?.content?.map((item: any, idx: number) => {
+    console.log(`\n📝 Processing content item ${idx}:`, Object.keys(item))
+
     if (item.text) {
       return { type: 'text' as const, text: item.text }
     }
+
     if (item.toolUse) {
-      return {
+      // Ensure input is stringified JSON
+      const inputString = typeof item.toolUse.input === 'string'
+        ? item.toolUse.input
+        : JSON.stringify(item.toolUse.input)
+
+      const toolCall = {
         type: 'tool-call' as const,
         toolCallId: item.toolUse.toolUseId,
         toolName: item.toolUse.name,
-        args: item.toolUse.input
+        input: inputString
       }
+
+      return toolCall
     }
+
     return null
   }).filter(Boolean) || []
 
+  console.log(`\n📊 Total content items: ${content.length}`)
+  content.forEach((c, i) => {
+    console.log(`  ${i}: ${c.type}`)
+  })
+
   const inputTokens = responseBody.usage?.inputTokens || 0
   const outputTokens = responseBody.usage?.outputTokens || 0
-  const finishReason = output?.stopReason === 'end_turn' ? 'stop' : 'length'
 
-  return {
+  // Check stop reason
+  const stopReason = output?.stopReason
+
+  let finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' = 'stop'
+
+  if (stopReason === 'tool_use') {
+    finishReason = 'tool-calls'
+  } else if (stopReason === 'max_tokens') {
+    finishReason = 'length'
+  } else if (stopReason === 'end_turn') {
+    finishReason = 'stop'
+  } else {
+    console.log('  ⚠️ Unknown stop reason, defaulting to: stop')
+  }
+
+  const result = {
     content,
     finishReason,
     usage: {
@@ -198,6 +236,8 @@ function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
       totalTokens: inputTokens + outputTokens
     }
   }
+
+  return result
 }
 
 function convertCohereResponse(responseBody: any): Partial<StandardResponse> {
@@ -319,7 +359,7 @@ export function convertBedrockResponse(
     partial = convertClaudeResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     partial = convertLlamaResponse(responseBody)
-  } else if (modelId.startsWith('mistral.')) {
+  } else if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
     partial = convertMistralResponse(responseBody)
   } else if (modelId.startsWith('amazon.nova')) {
     partial = convertNovaResponse(responseBody)

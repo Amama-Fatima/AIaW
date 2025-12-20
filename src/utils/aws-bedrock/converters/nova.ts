@@ -43,24 +43,18 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
           }
         })
       }
-      console.log('🔧 Tool result message:', JSON.stringify(toolResult, null, 2))
       return toolResult
     }
 
     const processedContent = Array.isArray(msg.content)
       ? msg.content.map((c: any, cIdx: number) => {
-        console.log(`  📝 Content block ${cIdx}:`, c.type)
+        console.log(` Content block ${cIdx}:`, c.type)
 
         if (c.type === 'text') {
           return { text: c.text }
         }
 
         if (c.type === 'tool-call') {
-          console.log('    🔨 Tool call detected!')
-          console.log('    - toolCallId:', c.toolCallId)
-          console.log('    - toolName:', c.toolName)
-          console.log('    - input (raw):', c.input)
-
           let inputObject
           try {
             inputObject = typeof c.input === 'string'
@@ -105,9 +99,6 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
   const toolNameMapping: { [safeName: string]: string } = {}
 
   if (settings.tools && settings.tools.length > 0) {
-    console.log('\n🔧 === PROCESSING TOOLS ===')
-    console.log('📋 Original tools count:', settings.tools.length)
-
     cleanedTools = settings.tools.map((tool: any, idx: number) => {
       console.log(`\n🔨 Tool ${idx}: ${tool.name}`)
 
@@ -115,7 +106,6 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
       const safeName = baseName.replace(/-/g, '_')
 
       if (safeName !== tool.name) {
-        console.log(`  ⚠️ Transformed tool name: ${tool.name} → ${safeName}`)
         toolNameMapping[safeName] = tool.name
       }
 
@@ -135,8 +125,6 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
         }
       }
     })
-
-    console.log('\n✅ Cleaned tools:', JSON.stringify(cleanedTools, null, 2))
   }
 
   // CRITICAL: Set temperature to 0 for tool calling (AWS recommendation)
@@ -145,8 +133,6 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
     temperature: 0, // MUST be 0 for tool calling
     top_p: settings.topP
   }
-
-  console.log('\n⚙️ Inference config:', JSON.stringify(inferenceConfig, null, 2))
 
   const body: any = {
     messages,
@@ -159,19 +145,12 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
       // Optional: Force tool usage
       toolChoice: { auto: {} } // Let model decide, or use { any: {} } to require tool use
     }
-    console.log('\n🔧 Tool config added to body')
-    console.log('  Tool choice:', body.toolConfig.toolChoice)
   }
 
   // Store the tool name mapping so we can reverse it later
   if (Object.keys(toolNameMapping).length > 0) {
     body._toolNameMapping = toolNameMapping
-    console.log('\n🗺️ Tool name mapping:', JSON.stringify(toolNameMapping, null, 2))
   }
-
-  console.log('\n📦 === FINAL REQUEST BODY ===')
-  console.log(JSON.stringify(body, null, 2))
-  console.log('🔍 === NOVA FORMAT CONVERSION END ===\n')
 
   return body
 }

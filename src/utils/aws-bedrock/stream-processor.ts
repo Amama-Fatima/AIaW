@@ -1,3 +1,4 @@
+/* eslint-disable brace-style */
 /* eslint-disable yield-star-spacing */
 
 import type { LanguageModelV2StreamPart, LanguageModelV2CallWarning } from '@ai-sdk/provider'
@@ -65,6 +66,11 @@ export async function* createBedrockStream(
   // Process other model streams
   if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     yield* processLlamaStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
+    return
+  }
+
+  if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+    yield* processMistralStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
     return
   }
 
@@ -270,62 +276,146 @@ async function* processNovaStream(
   stream: any,
   state: any
 ): AsyncGenerator<LanguageModelV2StreamPart> {
+  let chunkCount = 0
+
   for await (const event of stream) {
-    if (!event.chunk) continue
+    chunkCount++
+    console.log(`\n📦 Chunk ${chunkCount} received`)
 
-    const chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes))
+    if (!event.chunk) {
+      continue
+    }
 
+    let chunk
+    try {
+      chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes))
+    } catch (e) {
+      console.error('  ❌ Failed to parse chunk:', e)
+      continue
+    }
+
+    // Handle tool use start
     if (chunk.contentBlockStart?.start?.toolUse) {
       const toolUse = chunk.contentBlockStart.start.toolUse
       state.currentToolCallId = toolUse.toolUseId
       state.currentToolName = toolUse.name
+      state.accumulatedToolInput = ''
 
       yield {
         type: 'tool-input-start',
         id: state.currentToolCallId,
         toolName: state.currentToolName
       }
-    } else if (chunk.contentBlockDelta?.delta?.toolUse) {
+    } // Handle tool input delta
+    else if (chunk.contentBlockDelta?.delta?.toolUse) {
       const toolDelta = chunk.contentBlockDelta.delta.toolUse.input || ''
       state.accumulatedToolInput += toolDelta
-      yield { type: 'tool-input-delta', id: state.currentToolCallId, delta: toolDelta }
-    } else if (chunk.contentBlockDelta?.delta?.text) {
+
+      yield {
+        type: 'tool-input-delta',
+        id: state.currentToolCallId,
+        delta: toolDelta
+      }
+    }
+    // Handle text delta
+    else if (chunk.contentBlockDelta?.delta?.text) {
       const textDelta = chunk.contentBlockDelta.delta.text
+
       if (!state.hasTextStarted) {
         yield { type: 'text-start', id: state.currentTextId }
         state.hasTextStarted = true
       }
-      yield { type: 'text-delta', id: state.currentTextId, delta: textDelta }
-    } else if (chunk.contentBlockStop) {
+
+      yield {
+        type: 'text-delta',
+        id: state.currentTextId,
+        delta: textDelta
+      }
+    }
+    // Handle content block stop
+    else if (chunk.contentBlockStop) {
       if (state.hasTextStarted) {
         yield { type: 'text-end', id: state.currentTextId }
         state.hasTextStarted = false
       } else if (state.currentToolCallId) {
-        yield { type: 'tool-input-end', id: state.currentToolCallId }
-
         try {
+          const parsedInput = JSON.parse(state.accumulatedToolInput || '{}')
+
+          yield { type: 'tool-input-end', id: state.currentToolCallId }
+
+          const toolCall = {
+            type: 'tool-call' as const,
+            toolCallId: state.currentToolCallId,
+            toolName: state.currentToolName,
+            input: JSON.stringify(parsedInput)
+          }
+
+          yield toolCall
+        } catch (e) {
+          yield { type: 'tool-input-end', id: state.currentToolCallId }
           yield {
             type: 'tool-call',
             toolCallId: state.currentToolCallId,
             toolName: state.currentToolName,
-            input: state.accumulatedToolInput || '{}'
+            input: '{}'
           }
-        } catch (e) {
-          console.error('Failed to yield Nova tool call:', e)
         }
 
+        // Reset state
         state.accumulatedToolInput = ''
         state.currentToolCallId = ''
+        state.currentToolName = ''
       }
-    } else if (chunk.messageStop && !state.hasEmittedFinish) {
-      yield {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+    }
+    // Handle message stop
+    else if (chunk.messageStop) {
+      if (!state.hasEmittedFinish) {
+        const stopReason = chunk.messageStop.stopReason
+        let finishReason: 'stop' | 'length' | 'tool-calls' = 'stop'
+
+        if (stopReason === 'tool_use') {
+          finishReason = 'tool-calls'
+        } else if (stopReason === 'max_tokens') {
+          finishReason = 'length'
+        }
+
+        yield {
+          type: 'finish',
+          finishReason,
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+        }
+        state.hasEmittedFinish = true
+        console.log('  ✅ Yielded finish')
       }
-      state.hasEmittedFinish = true
+    }
+    // Handle metadata
+    else if (chunk.metadata) {
+      console.log('  ℹ️ METADATA')
+      console.log('    - Usage:', chunk.metadata.usage)
+      console.log('    - Metrics:', chunk.metadata.metrics)
+    } else {
+      console.log('  ⚠️ Unknown chunk type:', Object.keys(chunk))
     }
   }
+
+  // Finalization
+  console.log('\n🏁 Stream ended, finalizing...')
+
+  if (state.hasTextStarted) {
+    console.log('  - Closing open text block')
+    yield { type: 'text-end', id: state.currentTextId }
+  }
+
+  if (!state.hasEmittedFinish) {
+    console.log('  - Emitting final finish event')
+    yield {
+      type: 'finish',
+      finishReason: 'stop',
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+    }
+  }
+
+  console.log('🌊 === NOVA STREAM PROCESSING END ===\n')
 }
 
 /**
@@ -418,6 +508,61 @@ async function* processJambaStream(
         }
       }
       state.hasEmittedFinish = true
+    }
+  }
+}
+
+/**
+ * Process Mistral streaming events
+ */
+async function* processMistralStream(
+  stream: any,
+  state: any
+): AsyncGenerator<LanguageModelV2StreamPart> {
+  for await (const event of stream) {
+    if (!event.chunk) continue
+
+    try {
+      const chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes))
+
+      const textDelta = chunk.outputs?.[0]?.text || ''
+
+      if (textDelta) {
+        if (!state.hasTextStarted) {
+          yield { type: 'text-start', id: state.currentTextId }
+          state.hasTextStarted = true
+        }
+        yield { type: 'text-delta', id: state.currentTextId, delta: textDelta }
+      }
+
+      if (chunk.stop_reason) {
+        if (!state.hasEmittedFinish) {
+          yield {
+            type: 'finish',
+            finishReason: chunk.stop_reason === 'stop' ? 'stop' : 'length',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0
+            }
+          }
+          state.hasEmittedFinish = true
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing Mistral stream chunk:', error)
+    }
+  }
+
+  if (!state.hasEmittedFinish) {
+    yield {
+      type: 'finish',
+      finishReason: 'stop',
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0
+      }
     }
   }
 }
