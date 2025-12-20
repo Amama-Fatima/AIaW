@@ -73,10 +73,6 @@ export function convertLlamaResponse(responseBody: any): any {
     .replace(/<\|eot_id\|>/g, '')
     .trim()
 
-  console.log('=== GENERATED TEXT ===')
-  console.log(generatedText)
-  console.log('=== END GENERATED TEXT ===')
-
   let toolCallMatch = null
 
   toolCallMatch = generatedText.match(/\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"parameters"\s*:\s*(\{[^}]*\}|\{.*?\})\s*\}/s)
@@ -121,11 +117,6 @@ export function convertLlamaResponse(responseBody: any): any {
       toolParams = {}
     }
 
-    console.log('=== TOOL CALL DETECTED ===')
-    console.log('Tool:', toolName)
-    console.log('Parameters:', toolParams)
-    console.log('=== END TOOL CALL ===')
-
     content = [{
       type: 'tool-call' as const,
       toolCallId: `call_${Date.now()}`,
@@ -133,8 +124,6 @@ export function convertLlamaResponse(responseBody: any): any {
       args: toolParams
     }]
   } else {
-    console.log('=== NO TOOL CALL DETECTED ===')
-    console.log('Returning as text response')
     content = [{ type: 'text' as const, text: generatedText }]
   }
 

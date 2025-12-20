@@ -63,7 +63,7 @@ export async function* createBedrockStream(
   }
 
   // Process other model streams
-  if (modelId.startsWith('meta.llama')) {
+  if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     yield* processLlamaStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
     return
   }

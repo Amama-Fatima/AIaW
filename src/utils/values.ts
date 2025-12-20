@@ -260,7 +260,6 @@ const ProviderTypes: ProviderType[] = [
         'anthropic.claude-3-haiku-20240307-v1:0',
         'anthropic.claude-3-sonnet-20240229-v1:0',
         'anthropic.claude-3-5-sonnet-20240620-v1:0',
-        'anthropic.claude-3-5-sonnet-20241022-v2:0',
 
         // Meta Llama models
         'meta.llama3-8b-instruct-v1:0',
@@ -396,31 +395,31 @@ const models: Model[] = [
   // Claude models on Bedrock
   { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
   { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
-  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // Failed to summarize conversation - sometimes works sometimes doesnt
-
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
   // Meta Llama models on Bedrock
-  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // does not work with mcp
-  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // summarization api not working as expected
+  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
   { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // fixed
   { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // fixed
 
   // Amazon Nova models
-  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, //  fixed
-  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // summarization format issue
-  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // fixed
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // mcp tool call errors
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
 
   // AI21 Labs
-  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // fixed
+  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
+  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // mcp tool call errors
 ]
+
 const modelOptions = models.map(m => m.name)
 const dialogOptions = {
   color: 'primary'
