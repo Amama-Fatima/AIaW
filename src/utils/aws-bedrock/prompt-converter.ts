@@ -45,7 +45,12 @@ export function convertPromptToBedrock(
   }
 
   if (modelId.startsWith('amazon.nova')) {
-    return convertToNovaFormat(prompt, settings)
+    const result = convertToNovaFormat(prompt, settings)
+
+    result.body._toolMapping = result.toolMapping
+    result.body._useConverseApi = result.useConverseApi
+
+    return result.body
   }
 
   if (modelId.startsWith('cohere.')) {
