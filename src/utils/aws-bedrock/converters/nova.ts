@@ -3,53 +3,48 @@
  */
 function extractBaseToolName(fullName: string): string {
   const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
-  return match ? match[1] : fullName
+  const result = match ? match[1] : fullName
+
+  return result
 }
 
 /**
- * Converts prompt to Amazon Nova format with extensive debugging
+ * Converts prompt to Amazon Nova Converse API format
  */
-export function convertToNovaFormat(prompt: any[], settings: any): any {
-  const messages = prompt.map((msg: any, idx: number) => {
-    console.log(`\n📨 Processing message ${idx}:`, msg.role)
-
+export function convertToNovaFormat(prompt: any[], settings: any): { body: any; toolMapping: { [key: string]: string }; useConverseApi: boolean } {
+  const messages = prompt.map((msg: any) => {
     if (msg.role === 'tool') {
-      const toolResult = {
+      return {
         role: 'user',
         content: msg.content.map((c: any) => {
-          // Parse the result properly
           let resultContent
-
-          if (typeof c.result === 'string') {
-            // Try to parse as JSON
+          const resultData = c.result || c.content || c
+          if (typeof resultData === 'string') {
             try {
-              const parsed = JSON.parse(c.result)
-              resultContent = { json: parsed }
+              const parsed = JSON.parse(resultData)
+              resultContent = [{ json: parsed }]
             } catch {
-              // Not JSON, use text
-              resultContent = { text: c.result }
+              resultContent = [{ text: resultData }]
             }
-          } else if (c.result && typeof c.result === 'object') {
-            resultContent = { json: c.result }
+          } else if (resultData && typeof resultData === 'object') {
+            resultContent = [{ json: resultData }]
           } else {
-            resultContent = { text: String(c.result || '') }
+            resultContent = [{ text: String(resultData || '') }]
           }
 
           return {
             toolResult: {
               toolUseId: c.toolCallId,
-              content: [resultContent]
+              content: resultContent,
+              status: 'success'
             }
           }
         })
       }
-      return toolResult
     }
 
     const processedContent = Array.isArray(msg.content)
-      ? msg.content.map((c: any, cIdx: number) => {
-        console.log(` Content block ${cIdx}:`, c.type)
-
+      ? msg.content.map((c: any) => {
         if (c.type === 'text') {
           return { text: c.text }
         }
@@ -57,23 +52,19 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
         if (c.type === 'tool-call') {
           let inputObject
           try {
-            inputObject = typeof c.input === 'string'
-              ? JSON.parse(c.input)
-              : c.input
-            console.log('    - input (parsed):', JSON.stringify(inputObject, null, 2))
+            inputObject = typeof c.input === 'string' ? JSON.parse(c.input) : c.input
           } catch (e) {
-            console.error('    ❌ Failed to parse tool input:', e)
+            inputObject = {}
             inputObject = {}
           }
 
-          const toolUse = {
+          return {
             toolUse: {
               toolUseId: c.toolCallId,
               name: c.toolName,
               input: inputObject
             }
           }
-          return toolUse
         }
 
         if (c.type === 'file' && c.mimeType?.startsWith('image/')) {
@@ -90,18 +81,16 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
       : [{ text: typeof msg.content === 'string' ? msg.content : '' }]
 
     return {
-      role: msg.role,
+      role: msg.role === 'system' ? 'user' : msg.role,
       content: processedContent
     }
   })
 
-  let cleanedTools: any[] = []
+  let toolConfig: any
   const toolNameMapping: { [safeName: string]: string } = {}
 
   if (settings.tools && settings.tools.length > 0) {
-    cleanedTools = settings.tools.map((tool: any, idx: number) => {
-      console.log(`\n🔨 Tool ${idx}: ${tool.name}`)
-
+    const tools = settings.tools.map((tool: any) => {
       const baseName = extractBaseToolName(tool.name)
       const safeName = baseName.replace(/-/g, '_')
 
@@ -110,10 +99,8 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
       }
 
       const originalSchema = tool.inputSchema || tool.parameters
-      console.log('  Original schema:', JSON.stringify(originalSchema, null, 2))
 
       const cleanedSchema = cleanNovaSchema(originalSchema)
-      console.log('  Cleaned schema:', JSON.stringify(cleanedSchema, null, 2))
 
       return {
         toolSpec: {
@@ -125,34 +112,36 @@ export function convertToNovaFormat(prompt: any[], settings: any): any {
         }
       }
     })
-  }
 
-  // CRITICAL: Set temperature to 0 for tool calling (AWS recommendation)
-  const inferenceConfig: any = {
-    max_new_tokens: settings.maxTokens || 2048,
-    temperature: 0, // MUST be 0 for tool calling
-    top_p: settings.topP
+    toolConfig = {
+      tools,
+      toolChoice: { auto: {} }
+    }
   }
 
   const body: any = {
     messages,
-    inferenceConfig
-  }
-
-  if (cleanedTools.length > 0) {
-    body.toolConfig = {
-      tools: cleanedTools,
-      // Optional: Force tool usage
-      toolChoice: { auto: {} } // Let model decide, or use { any: {} } to require tool use
+    inferenceConfig: {
+      maxTokens: settings.maxTokens || 2048,
+      temperature: 0,
+      topP: settings.topP
     }
   }
 
-  // Store the tool name mapping so we can reverse it later
-  if (Object.keys(toolNameMapping).length > 0) {
-    body._toolNameMapping = toolNameMapping
+  if (toolConfig) {
+    body.toolConfig = toolConfig
   }
 
-  return body
+  const hasTools = settings.tools && settings.tools.length > 0
+  const useConverseApi = hasTools
+
+  const result = {
+    body,
+    toolMapping: toolNameMapping,
+    useConverseApi
+  }
+
+  return result
 }
 
 /**
@@ -180,14 +169,6 @@ function cleanNovaSchema(schema: any): any {
 
   if (schema.required) {
     cleaned.required = schema.required
-  }
-
-  // Log removed fields
-  const removedFields = Object.keys(schema).filter(
-    k => !['type', 'properties', 'required'].includes(k)
-  )
-  if (removedFields.length > 0) {
-    console.log(`    ⚠️ Removed unsupported fields: ${removedFields.join(', ')}`)
   }
 
   return cleaned

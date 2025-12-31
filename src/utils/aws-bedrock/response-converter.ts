@@ -175,18 +175,21 @@ function convertMistralResponse(responseBody: any): Partial<StandardResponse> {
   }
 }
 
-function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
+function convertNovaResponse(
+  responseBody: any,
+  toolMapping: ToolNameMapping = {}
+): Partial<StandardResponse> {
   const output = responseBody.output?.message
 
-  const content = output?.content?.map((item: any, idx: number) => {
-    console.log(`\n📝 Processing content item ${idx}:`, Object.keys(item))
-
+  const content = output?.content?.map((item: any) => {
     if (item.text) {
       return { type: 'text' as const, text: item.text }
     }
 
     if (item.toolUse) {
-      // Ensure input is stringified JSON
+      const mappedToolName = toolMapping[item.toolUse.name]
+      const finalToolName = mappedToolName || item.toolUse.name
+
       const inputString = typeof item.toolUse.input === 'string'
         ? item.toolUse.input
         : JSON.stringify(item.toolUse.input)
@@ -194,7 +197,7 @@ function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
       const toolCall = {
         type: 'tool-call' as const,
         toolCallId: item.toolUse.toolUseId,
-        toolName: item.toolUse.name,
+        toolName: finalToolName,
         input: inputString
       }
 
@@ -203,11 +206,6 @@ function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
 
     return null
   }).filter(Boolean) || []
-
-  console.log(`\n📊 Total content items: ${content.length}`)
-  content.forEach((c, i) => {
-    console.log(`  ${i}: ${c.type}`)
-  })
 
   const inputTokens = responseBody.usage?.inputTokens || 0
   const outputTokens = responseBody.usage?.outputTokens || 0
@@ -223,8 +221,6 @@ function convertNovaResponse(responseBody: any): Partial<StandardResponse> {
     finishReason = 'length'
   } else if (stopReason === 'end_turn') {
     finishReason = 'stop'
-  } else {
-    console.log('  ⚠️ Unknown stop reason, defaulting to: stop')
   }
 
   const result = {
@@ -362,7 +358,7 @@ export function convertBedrockResponse(
   } else if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
     partial = convertMistralResponse(responseBody)
   } else if (modelId.startsWith('amazon.nova')) {
-    partial = convertNovaResponse(responseBody)
+    partial = convertNovaResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('cohere.')) {
     partial = convertCohereResponse(responseBody)
   } else if (modelId.startsWith('ai21.')) {

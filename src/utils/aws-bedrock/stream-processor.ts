@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable brace-style */
 /* eslint-disable yield-star-spacing */
 
@@ -5,6 +6,7 @@ import type { LanguageModelV2StreamPart, LanguageModelV2CallWarning } from '@ai-
 import { mapClaudeStopReason } from './utils'
 import { coerceToolInput } from './tool-coercion'
 import type { ToolNameMapping } from './types'
+import { processNovaConverseStream } from './streams/nova-converse-stream'
 
 /**
  * Creates an async generator that yields AI SDK stream parts from Bedrock stream
@@ -75,7 +77,7 @@ export async function* createBedrockStream(
   }
 
   if (modelId.startsWith('amazon.nova')) {
-    yield* processNovaStream(stream, { currentTextId, currentToolCallId, hasTextStarted, accumulatedToolInput, hasEmittedFinish })
+    yield* processNovaConverseStream(stream, toolMapping)
     return
   }
 

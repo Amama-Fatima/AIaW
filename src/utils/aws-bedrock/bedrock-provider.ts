@@ -1,7 +1,9 @@
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
-  InvokeModelWithResponseStreamCommand
+  InvokeModelWithResponseStreamCommand,
+  ConverseCommand,
+  ConverseStreamCommand
 } from '@aws-sdk/client-bedrock-runtime'
 import type { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider'
 
@@ -13,10 +15,6 @@ import type { BedrockConfig, BedrockModelFactory } from './types'
 
 /**
  * Creates a Bedrock provider with AWS credentials
- *
- * @param config - AWS credentials and region
- * @returns Factory function that creates LanguageModelV2 instances
- * @throws Error if credentials are incomplete
  */
 export function createBedrock(config: BedrockConfig): BedrockModelFactory {
   if (!config.accessKeyId || !config.secretAccessKey || !config.region) {
@@ -43,20 +41,38 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
       /**
        * Non-streaming generation
-       *
-       * Makes a single request to Bedrock and returns the complete response
        */
       async doGenerate(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
 
-        // Convert prompt to Bedrock format
-        const body = convertPromptToBedrock(modelId, prompt, settings)
+        const result = convertPromptToBedrock(modelId, prompt, settings)
 
-        // Extract and remove tool mapping
-        const toolMapping = body._toolMapping || {}
+        const body = result.body || result
+        const toolMapping = result.toolMapping || body._toolMapping || {}
+
+        const useConverseApi = result.useConverseApi || body._useConverseApi || false
+
         delete body._toolMapping
+        delete body._useConverseApi
 
-        // Send request
+        if (modelId.startsWith('amazon.nova') && useConverseApi) {
+          const command = new ConverseCommand({
+            modelId,
+            messages: body.messages,
+            toolConfig: body.toolConfig,
+            inferenceConfig: body.inferenceConfig,
+            system: body.system
+          })
+
+          try {
+            const response = await client.send(command)
+            return convertBedrockResponse(modelId, response, body, toolMapping)
+          } catch (error) {
+            console.error('\n Bedrock Converse API error:', error)
+            throw error
+          }
+        }
+
         const command = new InvokeModelCommand({
           modelId,
           contentType: 'application/json',
@@ -67,7 +83,6 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         try {
           const response = await client.send(command)
           const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-
           return convertBedrockResponse(modelId, responseBody, body, toolMapping)
         } catch (error) {
           console.error('Bedrock API error:', error)
@@ -77,20 +92,51 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
       /**
        * Streaming generation
-       *
-       * Streams tokens as they are generated, allowing for real-time UI updates
-       */
+      */
       async doStream(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
+        const result = convertPromptToBedrock(modelId, prompt, settings)
 
-        // Convert prompt to Bedrock format
-        const body = convertPromptToBedrock(modelId, prompt, settings)
+        const body = result.body || result
+        const toolMapping = result.toolMapping || body._toolMapping || {}
+        const useConverseApi = result.useConverseApi || body._useConverseApi || false
 
-        // Extract and remove tool mapping
-        const toolMapping = body._toolMapping || {}
         delete body._toolMapping
+        delete body._useConverseApi
 
-        // Send streaming request
+        if (modelId.startsWith('amazon.nova') && useConverseApi) {
+          const command = new ConverseStreamCommand({
+            modelId,
+            messages: body.messages,
+            toolConfig: body.toolConfig,
+            inferenceConfig: body.inferenceConfig,
+            system: body.system
+          })
+
+          try {
+            const response = await client.send(command)
+
+            return {
+              stream: convertAsyncGeneratorToReadableStream(
+                createBedrockStream(
+                  modelId,
+                  response.stream,
+                  toolMapping,
+                  settings.tools || []
+                )
+              ),
+              rawCall: {
+                rawPrompt: body,
+                rawSettings: settings
+              }
+            }
+          } catch (error) {
+            console.error('\n Bedrock ConverseStream error:', error)
+
+            throw error
+          }
+        }
+
         const command = new InvokeModelWithResponseStreamCommand({
           modelId,
           contentType: 'application/json',
