@@ -1,29 +1,8 @@
-import type {
-  LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason
-} from '@ai-sdk/provider'
-import type { ToolNameMapping } from './types'
+import type { StandardResponse, ToolNameMapping } from './types'
 import { convertClaudeResponse } from './claude/convert-claude-response'
 import { convertLlamaResponse } from './llama/convert-llama-response'
 import { convertNovaResponse } from './nova/convert-nova-response'
-
-interface StandardResponse {
-  content: any[]
-  finishReason: LanguageModelV2FinishReason
-  usage: {
-    inputTokens: number
-    outputTokens: number
-    totalTokens: number
-  }
-  request: {
-    body: string
-  }
-  response: {
-    id: string
-    timestamp: Date
-  }
-  warnings: LanguageModelV2CallWarning[]
-}
+import { convertCohereResponse } from './cohere/convert-cohere-response'
 
 function convertMistralResponse(responseBody: any): Partial<StandardResponse> {
   const generatedText = responseBody.outputs?.[0]?.text || ''
@@ -54,37 +33,6 @@ function convertMistralResponse(responseBody: any): Partial<StandardResponse> {
       inputTokens: 0,
       outputTokens: 0,
       totalTokens: 0
-    }
-  }
-}
-
-function convertCohereResponse(responseBody: any): Partial<StandardResponse> {
-  const text = responseBody.text || ''
-  const toolCalls = responseBody.tool_calls || []
-
-  const content: any[] = []
-
-  if (text) {
-    content.push({ type: 'text' as const, text })
-  }
-
-  toolCalls.forEach((call: any) => {
-    content.push({
-      type: 'tool-call' as const,
-      toolCallId: call.id || `call_${Date.now()}`,
-      toolName: call.name,
-      args: call.parameters
-    })
-  })
-
-  return {
-    content,
-    finishReason: 'stop',
-    usage: {
-      inputTokens: responseBody.meta?.tokens?.input_tokens || 0,
-      outputTokens: responseBody.meta?.tokens?.output_tokens || 0,
-      totalTokens: (responseBody.meta?.tokens?.input_tokens || 0) +
-        (responseBody.meta?.tokens?.output_tokens || 0)
     }
   }
 }
@@ -129,34 +77,6 @@ function convertJambaResponse(responseBody: any): Partial<StandardResponse> {
 }
 
 /**
- * Converts generic model response to AI SDK format
- */
-function convertGenericResponse(responseBody: any): Partial<StandardResponse> {
-  const text = responseBody.completions?.[0]?.data?.text ||
-    responseBody.generation || ''
-
-  const toolCallMatch = text.match(/\{"tool":\s*"([^"]+)",\s*"parameters":\s*(\{.*?\})\}/s)
-
-  let content: any[]
-  if (toolCallMatch) {
-    content = [{
-      type: 'tool-call' as const,
-      toolCallId: `call_${Date.now()}`,
-      toolName: toolCallMatch[1],
-      args: JSON.parse(toolCallMatch[2])
-    }]
-  } else {
-    content = [{ type: 'text' as const, text }]
-  }
-
-  return {
-    content,
-    finishReason: 'stop',
-    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
-  }
-}
-
-/**
  * Main response converter - routes to model-specific converter
  *
  * @param modelId - Bedrock model identifier
@@ -185,8 +105,6 @@ export function convertBedrockResponse(
     partial = convertCohereResponse(responseBody)
   } else if (modelId.startsWith('ai21.')) {
     partial = convertJambaResponse(responseBody)
-  } else {
-    partial = convertGenericResponse(responseBody)
   }
 
   return {

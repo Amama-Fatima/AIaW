@@ -1,8 +1,7 @@
 import { convertToClaudeFormat } from './claude/convert-prompt-to-claude-format'
+import { convertToCohereFormat } from './cohere/convert-prompt-to-cohere-format'
 import {
   convertToMistralFormat,
-  convertToCohereFormat,
-  convertToGenericFormat,
   convertToJambaFormat
 } from './converters/other-models'
 import { convertToLlamaFormat } from './llama/convert-prompt-to-llama-format'
@@ -59,6 +58,4 @@ export function convertPromptToBedrock(
   if (modelId.startsWith('ai21.')) {
     return convertToJambaFormat(prompt, settings)
   }
-
-  return convertToGenericFormat(prompt, settings)
 }
