@@ -1,6 +1,3 @@
-/**
- * Extracts base tool name by removing MCP namespace prefix
- */
 function extractBaseToolName(fullName: string): string {
   const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
   const result = match ? match[1] : fullName
@@ -8,9 +5,6 @@ function extractBaseToolName(fullName: string): string {
   return result
 }
 
-/**
- * Converts prompt to Amazon Nova Converse API format
- */
 export function convertToNovaFormat(prompt: any[], settings: any): { body: any; toolMapping: { [key: string]: string }; useConverseApi: boolean } {
   const messages = prompt.map((msg: any) => {
     if (msg.role === 'tool') {
@@ -145,7 +139,6 @@ export function convertToNovaFormat(prompt: any[], settings: any): { body: any; 
 }
 
 /**
- * Clean JSON schema to only include fields supported by Nova
  * Nova only supports: type, properties, required at top level
  */
 function cleanNovaSchema(schema: any): any {
@@ -155,7 +148,6 @@ function cleanNovaSchema(schema: any): any {
 
   const cleaned: any = {}
 
-  // Only include supported fields
   if (schema.type) {
     cleaned.type = schema.type
   }
@@ -184,7 +176,6 @@ function cleanNovaSchemaProperty(prop: any): any {
 
   const cleaned: any = {}
 
-  // Allowed fields for properties
   const allowedFields = ['type', 'description', 'enum', 'items', 'properties', 'required']
 
   for (const field of allowedFields) {

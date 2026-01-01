@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { LanguageModelV2StreamPart } from '@ai-sdk/provider'
 
 /**
@@ -13,8 +12,8 @@ import type { LanguageModelV2StreamPart } from '@ai-sdk/provider'
  */
 export async function* processNovaConverseStream(
   stream: any,
-  toolMapping: { [key: string]: string } = {},
-  toolSchemas: any[] = []
+  toolMapping: { [key: string]: string } = {}
+  // toolSchemas: any[] = []
 ): AsyncGenerator<LanguageModelV2StreamPart> {
   const state = {
     currentTextId: 'text-0',
@@ -26,10 +25,10 @@ export async function* processNovaConverseStream(
     lastStopReason: undefined as string | undefined
   }
 
-  let chunkCount = 0
+  // let chunkCount = 0
 
   for await (const event of stream) {
-    chunkCount++
+    // chunkCount++
 
     const chunk = event.chunk ? JSON.parse(new TextDecoder().decode(event.chunk.bytes)) : event
 

@@ -1,7 +1,6 @@
 export function convertLlamaResponse(responseBody: any): any {
   let generatedText = responseBody.generation || ''
 
-  // Clean up the response
   generatedText = generatedText
     .replace(/<\|start_header_id\|>.*?<\|end_header_id\|>\s*/gs, '')
     .replace(/.*<\|end_header_id\|>\s*/g, '')

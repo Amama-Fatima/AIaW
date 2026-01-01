@@ -4,9 +4,9 @@
 
 import type { LanguageModelV2StreamPart, LanguageModelV2CallWarning } from '@ai-sdk/provider'
 import type { ToolNameMapping } from './types'
-import { processNovaConverseStream } from './streams/nova-converse-stream'
 import { processClaudeStream } from './claude/claude-stream-processor'
 import { processLlamaStream } from './llama/llama-stream-processor'
+import { processNovaConverseStream } from './nova/nova-stream-processor'
 
 /**
  * Creates an async generator that yields AI SDK stream parts from Bedrock stream
