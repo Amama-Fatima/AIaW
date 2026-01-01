@@ -1,12 +1,12 @@
 import { convertToClaudeFormat } from './claude/convert-prompt-to-claude-format'
 import { convertToNovaFormat } from './converters/nova'
 import {
-  convertToLlamaFormat,
   convertToMistralFormat,
   convertToCohereFormat,
   convertToGenericFormat,
   convertToJambaFormat
 } from './converters/other-models'
+import { convertToLlamaFormat } from './llama/convert-prompt-to-llama-format'
 import type { BedrockRequestBody } from './types'
 
 /**
