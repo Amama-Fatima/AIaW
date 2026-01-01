@@ -1,5 +1,7 @@
 import type {
-  LanguageModelV2
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason
   // LanguageModelV2Options
 } from '@ai-sdk/provider'
 
@@ -27,4 +29,22 @@ export interface TruncationConfig {
 export interface ConvertedPrompt {
   body: BedrockRequestBody
   toolMapping?: ToolNameMapping
+}
+
+export interface StandardResponse {
+  content: any[]
+  finishReason: LanguageModelV2FinishReason
+  usage: {
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+  }
+  request: {
+    body: string
+  }
+  response: {
+    id: string
+    timestamp: Date
+  }
+  warnings: LanguageModelV2CallWarning[]
 }

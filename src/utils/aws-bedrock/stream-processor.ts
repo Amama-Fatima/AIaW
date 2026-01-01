@@ -3,10 +3,9 @@
 /* eslint-disable yield-star-spacing */
 
 import type { LanguageModelV2StreamPart, LanguageModelV2CallWarning } from '@ai-sdk/provider'
-import { mapClaudeStopReason } from './utils'
-import { coerceToolInput } from './tool-coercion'
 import type { ToolNameMapping } from './types'
 import { processNovaConverseStream } from './streams/nova-converse-stream'
+import { processClaudeStream } from './claude/claude-stream-processor'
 
 /**
  * Creates an async generator that yields AI SDK stream parts from Bedrock stream
@@ -88,109 +87,6 @@ export async function* createBedrockStream(
 
   // Generic stream processing
   yield* processGenericStream(stream, { currentTextId, hasTextStarted })
-}
-
-/**
- * Processes Claude (Anthropic) streaming events
- */
-async function* processClaudeStream(
-  stream: any,
-  toolMapping: ToolNameMapping,
-  toolSchemas: any[],
-  state: any
-): AsyncGenerator<LanguageModelV2StreamPart> {
-  for await (const event of stream) {
-    if (!event.chunk) continue
-
-    const chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes))
-
-    if (chunk.type === 'content_block_start') {
-      if (chunk.content_block?.type === 'text') {
-        state.currentTextId = `text-${chunk.index}`
-        yield { type: 'text-start', id: state.currentTextId }
-        state.hasTextStarted = true
-      } else if (chunk.content_block?.type === 'tool_use') {
-        state.currentToolCallId = chunk.content_block.id
-        const baseToolName = chunk.content_block.name
-        state.currentToolName = toolMapping[baseToolName] || baseToolName
-        state.accumulatedToolInput = ''
-        state.toolCallCount++
-
-        yield {
-          type: 'tool-input-start',
-          id: state.currentToolCallId,
-          toolName: state.currentToolName
-        }
-      }
-    } else if (chunk.type === 'content_block_delta') {
-      if (chunk.delta?.type === 'text_delta') {
-        const textDelta = chunk.delta.text || ''
-
-        if (!state.hasTextStarted) {
-          yield { type: 'text-start', id: state.currentTextId }
-          state.hasTextStarted = true
-        }
-        yield {
-          type: 'text-delta',
-          id: state.currentTextId,
-          delta: textDelta
-        }
-      } else if (chunk.delta?.type === 'input_json_delta') {
-        const jsonDelta = chunk.delta.partial_json || ''
-        state.accumulatedToolInput += jsonDelta
-
-        yield {
-          type: 'tool-input-delta',
-          id: state.currentToolCallId,
-          delta: jsonDelta
-        }
-      }
-    } else if (chunk.type === 'content_block_stop') {
-      if (state.hasTextStarted) {
-        yield { type: 'text-end', id: state.currentTextId }
-        state.hasTextStarted = false
-      } else if (state.currentToolCallId) {
-        try {
-          const rawInput = JSON.parse(state.accumulatedToolInput || '{}')
-          const coercedInput = coerceToolInput(state.currentToolName, rawInput, toolSchemas)
-
-          yield { type: 'tool-input-end', id: state.currentToolCallId }
-          yield {
-            type: 'tool-call',
-            toolCallId: state.currentToolCallId,
-            toolName: state.currentToolName,
-            input: JSON.stringify(coercedInput)
-          }
-        } catch (e) {
-          console.error('❌ Failed to yield tool call:', e)
-        }
-
-        state.accumulatedToolInput = ''
-        state.currentToolCallId = ''
-        state.currentToolName = ''
-      }
-    } else if (chunk.type === 'message_delta') {
-      if (chunk.delta?.stop_reason) {
-        state.lastStopReason = chunk.delta.stop_reason
-      }
-    }
-  }
-
-  // Finalization
-  if (state.hasTextStarted) {
-    yield { type: 'text-end', id: state.currentTextId }
-  }
-
-  if (!state.hasEmittedFinish) {
-    const finalFinishReason = state.lastStopReason
-      ? mapClaudeStopReason(state.lastStopReason)
-      : 'stop'
-    yield {
-      type: 'finish',
-      finishReason: finalFinishReason,
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
-    }
-  }
 }
 
 /**

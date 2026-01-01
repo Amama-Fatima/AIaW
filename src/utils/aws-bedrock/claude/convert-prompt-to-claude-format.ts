@@ -3,7 +3,7 @@ import { processToolsForClaude } from '../tool-schema'
 import { ConvertedPrompt } from '../types'
 
 /**
- * Converts AI SDK prompt to Claude/Anthropic Bedrock format
+ * Converts AI SDK prompt to Claude Bedrock format
  *
  * Claude format structure:
  * {
@@ -17,14 +17,12 @@ import { ConvertedPrompt } from '../types'
  * }
  *
  * @param prompt - AI SDK message array
- * @param settings - Generation settings (maxTokens, temperature, etc.)
+ * @param settings - Generation settings (maxTokens, temperature, etc)
  * @returns Converted prompt with body and tool mapping
  */
 export function convertToClaudeFormat(prompt: any[], settings: any): ConvertedPrompt {
-  // Process messages through 3-step pipeline
   const messages = processMessagesForClaude(prompt)
 
-  // Extract system message (Claude has dedicated field)
   const systemMessage = prompt.find((msg: any) => msg.role === 'system')
 
   const body: any = {

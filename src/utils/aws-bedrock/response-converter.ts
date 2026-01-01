@@ -2,8 +2,8 @@ import type {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason
 } from '@ai-sdk/provider'
-import { mapClaudeStopReason } from './utils'
 import type { ToolNameMapping } from './types'
+import { convertClaudeResponse } from './claude/convert-claude-response'
 
 interface StandardResponse {
   content: any[]
@@ -21,46 +21,6 @@ interface StandardResponse {
     timestamp: Date
   }
   warnings: LanguageModelV2CallWarning[]
-}
-
-function convertClaudeResponse(
-  responseBody: any,
-  toolMapping: ToolNameMapping
-): Partial<StandardResponse> {
-  const content = responseBody.content?.map((item: any) => {
-    if (item.type === 'text') {
-      return { type: 'text' as const, text: item.text }
-    }
-
-    if (item.type === 'tool_use') {
-      // Restore full tool name using mapping
-      const baseToolName = item.name
-      const fullToolName = toolMapping[baseToolName] || baseToolName
-
-      return {
-        type: 'tool-call' as const,
-        toolCallId: item.id,
-        toolName: fullToolName,
-        args: item.input
-      }
-    }
-
-    return item
-  }) || []
-
-  const finishReason = mapClaudeStopReason(responseBody.stop_reason)
-  const inputTokens = responseBody.usage?.input_tokens || 0
-  const outputTokens = responseBody.usage?.output_tokens || 0
-
-  return {
-    content,
-    finishReason,
-    usage: {
-      inputTokens,
-      outputTokens,
-      totalTokens: inputTokens + outputTokens
-    }
-  }
 }
 
 export function convertLlamaResponse(responseBody: any): any {

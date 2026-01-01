@@ -1,4 +1,4 @@
-import { convertToClaudeFormat } from './converters/claude'
+import { convertToClaudeFormat } from './claude/convert-prompt-to-claude-format'
 import { convertToNovaFormat } from './converters/nova'
 import {
   convertToLlamaFormat,
