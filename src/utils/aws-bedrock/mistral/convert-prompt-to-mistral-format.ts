@@ -1,5 +1,3 @@
-/* eslint-disable brace-style */
-
 export function convertToMistralFormat(prompt: any[], settings: any): any {
   let formattedPrompt = ''
   const hasTools = settings.tools && settings.tools.length > 0
