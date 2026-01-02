@@ -409,9 +409,9 @@ const models: Model[] = [
   { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // fixed
 
   // Amazon Nova models
-  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
-  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
-  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // mcp tool call errors
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // fixed
 
   // Cohere models
   { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
