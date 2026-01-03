@@ -389,10 +389,9 @@ const models: Model[] = [
   { name: 'grok-4', inputTypes: InputTypes.commonVision },
 
   // Mistral models on Bedrock
-  { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly }, // working
-  { name: 'us.mistral.mistral-large-2407-v1:0', inputTypes: InputTypes.textOnly }, // not working
-  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly }, // working
-  { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly }, // working
+  { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool calling working. but needs more testing
+  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool calling not working
+  { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly }, // does not support tool calls
 
   // Claude models on Bedrock
   { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision }, // fixed

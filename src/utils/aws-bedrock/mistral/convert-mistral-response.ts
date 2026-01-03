@@ -1,34 +1,63 @@
-import { StandardResponse } from '../types'
+import type { StandardResponse } from '../types'
 
-export function convertMistralResponse(responseBody: any): Partial<StandardResponse> {
-  const generatedText = responseBody.outputs?.[0]?.text || ''
+export function convertMistralResponse(
+  responseBody: any,
+  toolMapping: { [key: string]: string } = {}
+): Partial<StandardResponse> {
+  const content: Array<{ type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: any }> = []
 
-  const toolCallMatch = generatedText.match(/\[TOOL_CALL\]\s*(\{.*?\})/s)
+  if (responseBody.output && responseBody.output.message) {
+    const message = responseBody.output.message
 
-  let content: any[]
-  if (toolCallMatch) {
-    try {
-      const toolCall = JSON.parse(toolCallMatch[1])
-      content = [{
-        type: 'tool-call' as const,
-        toolCallId: `call_${Date.now()}`,
-        toolName: toolCall.name,
-        args: toolCall.arguments
-      }]
-    } catch {
-      content = [{ type: 'text' as const, text: generatedText }]
+    if (message.content && Array.isArray(message.content)) {
+      for (const block of message.content) {
+        if (block.text) {
+          content.push({
+            type: 'text',
+            text: block.text
+          })
+        }
+
+        if (block.toolUse) {
+          const toolUse = block.toolUse
+          const originalToolName = toolMapping[toolUse.name] || toolUse.name
+
+          const inputString = typeof toolUse.input === 'string'
+            ? toolUse.input
+            : JSON.stringify(toolUse.input)
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolUse.toolUseId,
+            toolName: originalToolName,
+            input: inputString
+          })
+        }
+      }
     }
-  } else {
-    content = [{ type: 'text' as const, text: generatedText }]
+  }
+
+  let finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' | 'error' = 'stop'
+
+  if (responseBody.stopReason) {
+    if (responseBody.stopReason === 'tool_use') {
+      finishReason = 'tool-calls'
+    } else if (responseBody.stopReason === 'max_tokens') {
+      finishReason = 'length'
+    } else if (responseBody.stopReason === 'content_filtered') {
+      finishReason = 'content-filter'
+    }
+  }
+
+  const usage = {
+    inputTokens: responseBody.usage?.inputTokens || 0,
+    outputTokens: responseBody.usage?.outputTokens || 0,
+    totalTokens: responseBody.usage?.totalTokens || 0
   }
 
   return {
     content,
-    finishReason: responseBody.stop_reason || 'stop',
-    usage: {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0
-    }
+    finishReason,
+    usage
   }
 }

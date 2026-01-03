@@ -39,13 +39,11 @@ export async function* createBedrockStream(
   let lastStopReason: string | undefined
   const warnings: LanguageModelV2CallWarning[] = []
 
-  // Emit stream-start
   yield {
     type: 'stream-start',
     warnings
   }
 
-  // Process Claude streaming events
   if (modelId.startsWith('anthropic.')) {
     yield* processClaudeStream(
       stream,
@@ -65,14 +63,13 @@ export async function* createBedrockStream(
     return
   }
 
-  // Process other model streams
   if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     yield* processLlamaStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
     return
   }
 
   if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
-    yield* processMistralStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
+    yield* processMistralStream(stream, toolMapping)
     return
   }
 

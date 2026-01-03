@@ -12,7 +12,7 @@ import { convertMistralResponse } from './mistral/convert-mistral-response'
  * @param modelId - Bedrock model identifier
  * @param responseBody - Raw response from Bedrock API
  * @param requestBody - Original request body
- * @param toolMapping - Tool name mapping (for Claude)
+ * @param toolMapping - Tool name mapping
  * @returns Standardized AI SDK response
  */
 export function convertBedrockResponse(
@@ -28,13 +28,15 @@ export function convertBedrockResponse(
   } else if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
     partial = convertLlamaResponse(responseBody)
   } else if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
-    partial = convertMistralResponse(responseBody)
+    partial = convertMistralResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('amazon.nova')) {
     partial = convertNovaResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('cohere.')) {
     partial = convertCohereResponse(responseBody)
   } else if (modelId.startsWith('ai21.')) {
     partial = convertJambaResponse(responseBody)
+  } else {
+    partial = { content: [], finishReason: 'stop', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }
   }
 
   return {

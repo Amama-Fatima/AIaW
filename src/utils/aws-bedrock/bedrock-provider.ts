@@ -55,20 +55,24 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         delete body._toolMapping
         delete body._useConverseApi
 
-        if (modelId.startsWith('amazon.nova') && useConverseApi) {
-          const command = new ConverseCommand({
+        if ((modelId.startsWith('amazon.nova') || modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) && useConverseApi) {
+          const commandParams = {
             modelId,
             messages: body.messages,
             toolConfig: body.toolConfig,
             inferenceConfig: body.inferenceConfig,
             system: body.system
-          })
+          }
+
+          const command = new ConverseCommand(commandParams)
 
           try {
             const response = await client.send(command)
-            return convertBedrockResponse(modelId, response, body, toolMapping)
+            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+
+            return converted
           } catch (error) {
-            console.error('\n Bedrock Converse API error:', error)
+            console.error('Error message:', error.message)
             throw error
           }
         }
@@ -82,10 +86,14 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
         try {
           const response = await client.send(command)
+
           const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-          return convertBedrockResponse(modelId, responseBody, body, toolMapping)
+
+          const converted = convertBedrockResponse(modelId, responseBody, body, toolMapping)
+
+          return converted
         } catch (error) {
-          console.error('Bedrock API error:', error)
+          console.error('Error message:', error.message)
           throw error
         }
       },
@@ -95,6 +103,55 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
       */
       async doStream(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
+
+        if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+          const result = await this.doGenerate(options)
+
+          async function* syntheticStream() {
+            yield { type: 'stream-start' as const, warnings: [] }
+
+            for (const item of result.content) {
+              if (item.type === 'text') {
+                yield { type: 'text-start' as const, id: 'text-0' }
+                yield { type: 'text-delta' as const, id: 'text-0', delta: item.text }
+                yield { type: 'text-end' as const, id: 'text-0' }
+              } else if (item.type === 'tool-call') {
+                yield {
+                  type: 'tool-input-start' as const,
+                  id: item.toolCallId,
+                  toolName: item.toolName
+                }
+                yield {
+                  type: 'tool-input-delta' as const,
+                  id: item.toolCallId,
+                  delta: item.input
+                }
+                yield { type: 'tool-input-end' as const, id: item.toolCallId }
+                yield {
+                  type: 'tool-call' as const,
+                  toolCallId: item.toolCallId,
+                  toolName: item.toolName,
+                  input: item.input
+                }
+              }
+            }
+
+            yield {
+              type: 'finish' as const,
+              finishReason: result.finishReason,
+              usage: result.usage
+            }
+          }
+
+          return {
+            stream: convertAsyncGeneratorToReadableStream(syntheticStream()),
+            rawCall: {
+              rawPrompt: result.request.body,
+              rawSettings: settings
+            }
+          }
+        }
+
         const result = convertPromptToBedrock(modelId, prompt, settings)
 
         const body = result.body || result
@@ -131,8 +188,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
               }
             }
           } catch (error) {
-            console.error('\n Bedrock ConverseStream error:', error)
-
+            console.error('Error:', error)
             throw error
           }
         }
@@ -162,7 +218,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
             }
           }
         } catch (error) {
-          console.error('Bedrock streaming error:', error)
+          console.error('Error:', error)
           throw error
         }
       }
