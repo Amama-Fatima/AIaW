@@ -49,13 +49,38 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
         const body = result.body || result
         const toolMapping = result.toolMapping || body._toolMapping || {}
-
         const useConverseApi = result.useConverseApi || body._useConverseApi || false
 
         delete body._toolMapping
         delete body._useConverseApi
 
-        if ((modelId.startsWith('amazon.nova') || modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) && useConverseApi) {
+        if (modelId.startsWith('cohere.')) {
+          const commandParams = {
+            modelId,
+            messages: body.messages,
+            toolConfig: body.toolConfig,
+            inferenceConfig: body.inferenceConfig,
+            system: body.system
+          }
+
+          const command = new ConverseCommand(commandParams)
+
+          try {
+            const response = await client.send(command)
+
+            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+
+            return converted
+          } catch (error) {
+            console.error('Bedrock Cohere Error message:', error.message)
+
+            throw error
+          }
+        }
+
+        if ((modelId.startsWith('amazon.nova') ||
+          modelId.startsWith('mistral.') ||
+          modelId.startsWith('us.mistral.')) && useConverseApi) {
           const commandParams = {
             modelId,
             messages: body.messages,
@@ -69,10 +94,9 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           try {
             const response = await client.send(command)
             const converted = convertBedrockResponse(modelId, response, body, toolMapping)
-
             return converted
           } catch (error) {
-            console.error('Error message:', error.message)
+            console.error('[Bedrock] Error during Converse API call:', error.message)
             throw error
           }
         }
@@ -86,21 +110,19 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
         try {
           const response = await client.send(command)
-
           const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-
           const converted = convertBedrockResponse(modelId, responseBody, body, toolMapping)
-
+          console.log('[Bedrock] Invoke API response converted successfully')
           return converted
         } catch (error) {
-          console.error('Error message:', error.message)
+          console.error('[Bedrock] Error during Invoke API call:', error.message)
           throw error
         }
       },
 
       /**
        * Streaming generation
-      */
+       */
       async doStream(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
 
@@ -161,6 +183,41 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         delete body._toolMapping
         delete body._useConverseApi
 
+        if (modelId.startsWith('cohere.')) {
+          const commandParams = {
+            modelId,
+            messages: body.messages,
+            toolConfig: body.toolConfig,
+            inferenceConfig: body.inferenceConfig,
+            system: body.system
+          }
+
+          const command = new ConverseStreamCommand(commandParams)
+
+          try {
+            const response = await client.send(command)
+
+            return {
+              stream: convertAsyncGeneratorToReadableStream(
+                createBedrockStream(
+                  modelId,
+                  response.stream,
+                  toolMapping,
+                  settings.tools || []
+                )
+              ),
+              rawCall: {
+                rawPrompt: body,
+                rawSettings: settings
+              }
+            }
+          } catch (error) {
+            console.error('Bedrock Cohere Stream Error message:', error.message)
+
+            throw error
+          }
+        }
+
         if (modelId.startsWith('amazon.nova') && useConverseApi) {
           const command = new ConverseStreamCommand({
             modelId,
@@ -188,7 +245,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
               }
             }
           } catch (error) {
-            console.error('Error:', error)
+            console.error('Bedrock StreamError during Nova stream:', error.message)
             throw error
           }
         }
@@ -218,7 +275,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
             }
           }
         } catch (error) {
-          console.error('Error:', error)
+          console.error('[Bedrock Stream] Error during Invoke stream:', error.message)
           throw error
         }
       }

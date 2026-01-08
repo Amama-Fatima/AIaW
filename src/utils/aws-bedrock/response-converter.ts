@@ -32,7 +32,7 @@ export function convertBedrockResponse(
   } else if (modelId.startsWith('amazon.nova')) {
     partial = convertNovaResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('cohere.')) {
-    partial = convertCohereResponse(responseBody)
+    partial = convertCohereResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('ai21.')) {
     partial = convertJambaResponse(responseBody)
   } else {

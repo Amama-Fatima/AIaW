@@ -413,8 +413,8 @@ const models: Model[] = [
   { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // fixed
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // fixed
 
   // AI21 Labs
   { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors

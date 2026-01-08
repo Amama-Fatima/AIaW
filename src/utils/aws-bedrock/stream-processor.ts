@@ -7,6 +7,7 @@ import { processLlamaStream } from './llama/llama-stream-processor'
 import { processNovaConverseStream } from './nova/nova-stream-processor'
 import { processJambaStream } from './jamba/jamba-stream-processor'
 import { processMistralStream } from './mistral/mistral-stream-processor'
+import { processCohereStream } from './cohere/cohere-stream-processor'
 
 /**
  * Creates an async generator that yields AI SDK stream parts from Bedrock stream
@@ -75,6 +76,11 @@ export async function* createBedrockStream(
 
   if (modelId.startsWith('amazon.nova')) {
     yield* processNovaConverseStream(stream, toolMapping)
+    return
+  }
+
+  if (modelId.startsWith('cohere.')) {
+    yield* processCohereStream(stream, toolMapping)
     return
   }
 

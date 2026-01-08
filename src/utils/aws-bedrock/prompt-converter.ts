@@ -52,7 +52,10 @@ export function convertPromptToBedrock(
   }
 
   if (modelId.startsWith('cohere.')) {
-    return convertToCohereFormat(prompt, settings)
+    const result = convertToCohereFormat(prompt, settings)
+    result.body._toolMapping = result.toolMapping
+    result.body._useConverseApi = result.useConverseApi
+    return result.body
   }
   if (modelId.startsWith('ai21.')) {
     return convertToJambaFormat(prompt, settings)
