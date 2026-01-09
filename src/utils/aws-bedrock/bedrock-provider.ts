@@ -101,6 +101,29 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           }
         }
 
+        if (modelId.startsWith('ai21.') && useConverseApi) {
+          const commandParams = {
+            modelId,
+            messages: body.messages,
+            toolConfig: body.toolConfig,
+            inferenceConfig: body.inferenceConfig,
+            system: body.system
+          }
+
+          const command = new ConverseCommand(commandParams)
+
+          try {
+            const response = await client.send(command)
+
+            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+
+            return converted
+          } catch (error) {
+            console.error('Error during Jamba Converse API call:', error.message)
+            throw error
+          }
+        }
+
         const command = new InvokeModelCommand({
           modelId,
           contentType: 'application/json',
@@ -126,7 +149,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
       async doStream(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
 
-        if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+        if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.') || modelId.startsWith('ai21.')) {
           const result = await this.doGenerate(options)
 
           async function* syntheticStream() {

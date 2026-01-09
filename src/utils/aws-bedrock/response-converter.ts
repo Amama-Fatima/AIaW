@@ -34,7 +34,7 @@ export function convertBedrockResponse(
   } else if (modelId.startsWith('cohere.')) {
     partial = convertCohereResponse(responseBody, toolMapping)
   } else if (modelId.startsWith('ai21.')) {
-    partial = convertJambaResponse(responseBody)
+    partial = convertJambaResponse(responseBody, toolMapping)
   } else {
     partial = { content: [], finishReason: 'stop', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }
   }

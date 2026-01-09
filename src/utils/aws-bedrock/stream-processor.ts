@@ -85,6 +85,6 @@ export async function* createBedrockStream(
   }
 
   if (modelId.startsWith('ai21.')) {
-    yield* processJambaStream(stream, { currentTextId, currentToolCallId, hasTextStarted, accumulatedToolInput, hasEmittedFinish })
+    yield* processJambaStream(stream, toolMapping)
   }
 }
