@@ -18,9 +18,10 @@ function convertToJambaConverseFormat(
 ): { body: any; toolMapping: { [key: string]: string }; useConverseApi: true } {
   const separatedPrompt = separateToolResultMessages(prompt)
 
-  const mergedPrompt = mergeConsecutiveAssistantMessages(separatedPrompt)
+  const splitPrompt = splitTextAndToolCalls(separatedPrompt)
+  const mergedPrompt = mergeConsecutiveAssistantMessages(splitPrompt)
 
-  const finalPrompt = ensureAlternatingRoles(mergedPrompt)
+  const finalPrompt = insertDummyAssistantMessages(mergedPrompt)
 
   const messages = finalPrompt.map((msg: any) => {
     if (msg.role === 'tool') {
@@ -123,7 +124,6 @@ function convertToJambaConverseFormat(
 
       if (safeName !== tool.name) {
         toolNameMapping[safeName] = tool.name
-        console.log('[Jamba] Mapped tool name:', safeName, '->', tool.name)
       }
 
       const originalSchema = tool.inputSchema || tool.parameters
@@ -217,6 +217,45 @@ function separateToolResultMessages(prompt: any[]): any[] {
   return separated
 }
 
+function splitTextAndToolCalls(prompt: any[]): any[] {
+  const split: any[] = []
+
+  for (let i = 0; i < prompt.length; i++) {
+    const msg = prompt[i]
+
+    if (msg.role !== 'assistant') {
+      split.push(msg)
+      continue
+    }
+
+    const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }]
+
+    const textContent = content.filter((c: any) => c.type === 'text')
+    const toolCalls = content.filter((c: any) => c.type === 'tool-call')
+
+    if (textContent.length === 0 || toolCalls.length === 0) {
+      split.push(msg)
+      continue
+    }
+
+    if (textContent.length > 0) {
+      split.push({
+        role: 'assistant',
+        content: textContent
+      })
+    }
+
+    if (toolCalls.length > 0) {
+      split.push({
+        role: 'assistant',
+        content: toolCalls
+      })
+    }
+  }
+
+  return split
+}
+
 function mergeConsecutiveAssistantMessages(prompt: any[]): any[] {
   const merged: any[] = []
   let i = 0
@@ -241,16 +280,33 @@ function mergeConsecutiveAssistantMessages(prompt: any[]): any[] {
     if (assistantMessages.length === 1) {
       merged.push(currentMsg)
     } else {
-      const mergedContent: any[] = []
-      for (const msg of assistantMessages) {
-        const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }]
-        mergedContent.push(...content)
-      }
-
-      merged.push({
-        role: 'assistant',
-        content: mergedContent
+      const hasToolCalls = assistantMessages.some(msg => {
+        const content = Array.isArray(msg.content) ? msg.content : []
+        return content.some((c: any) => c.type === 'tool-call')
       })
+
+      if (hasToolCalls) {
+        const lastWithTools = assistantMessages.reverse().find(msg => {
+          const content = Array.isArray(msg.content) ? msg.content : []
+          return content.some((c: any) => c.type === 'tool-call')
+        })
+        if (lastWithTools) {
+          merged.push(lastWithTools)
+        } else {
+          merged.push(assistantMessages[0])
+        }
+      } else {
+        const mergedContent: any[] = []
+        for (const msg of assistantMessages) {
+          const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }]
+          mergedContent.push(...content)
+        }
+
+        merged.push({
+          role: 'assistant',
+          content: mergedContent
+        })
+      }
     }
 
     i = j
@@ -259,7 +315,7 @@ function mergeConsecutiveAssistantMessages(prompt: any[]): any[] {
   return merged
 }
 
-function ensureAlternatingRoles(prompt: any[]): any[] {
+function insertDummyAssistantMessages(prompt: any[]): any[] {
   const result: any[] = []
 
   for (let i = 0; i < prompt.length; i++) {
@@ -269,11 +325,16 @@ function ensureAlternatingRoles(prompt: any[]): any[] {
     if (i + 1 < prompt.length) {
       const next = prompt[i + 1]
 
-      if (current.role === 'user' && next.role === 'user') {
-        result.push({
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Understood.' }]
-        })
+      if (current.role === 'tool' && next.role === 'user') {
+        const nextContent = Array.isArray(next.content) ? next.content : []
+        const nextHasText = nextContent.some((c: any) => c.type === 'text')
+
+        if (nextHasText) {
+          result.push({
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Acknowledged.' }]
+          })
+        }
       }
     }
   }
