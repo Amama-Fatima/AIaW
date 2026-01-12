@@ -398,27 +398,27 @@ const models: Model[] = [
   { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
   { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
   // Meta Llama models on Bedrock
-  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // fixed
-  { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // fixed
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // can not access built in plugins
+  { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // can not access built in plugins
 
   // Amazon Nova models
-  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // fixed
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // failing tool calls for some built in plugins
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // fixed
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // fixed
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
 
   // AI21 Labs
-  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool call errors
-  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // mcp tool call errors
+  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
+  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // can not access built in plugins
 ]
 
 const modelOptions = models.map(m => m.name)
