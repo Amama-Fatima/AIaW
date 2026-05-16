@@ -1,8 +1,58 @@
 import { getMaxOutputTokens } from '../utils'
 
+function messageContentToText(content: any): string {
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((c: any) => {
+        if (c.type === 'text') return c.text
+        return ''
+      })
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  return content?.text || ''
+}
+
+function parseToolInput(content: any): any {
+  if (content.input !== undefined) {
+    return content.input
+  }
+
+  if (content.args !== undefined) {
+    return content.args
+  }
+
+  return {}
+}
+
+function getLlamaPromptHints(systemText: string): string[] {
+  const hints: string[] = []
+
+  if (systemText.includes('/emotions/nachoneko/')) {
+    hints.push(`Emoticon formatting rules:
+- When using an emoticon, output an HTML img tag, not a bare path.
+- Use this exact format: <img src="/emotions/nachoneko/1.webp" width="100">
+- The file extension must be exactly ".webp". Do not write ".webpt".
+- Choose one of the listed /emotions/nachoneko/*.webp paths exactly as written.`)
+  }
+
+  return hints
+}
+
 export function convertToLlamaFormat(prompt: any[], settings: any): any {
-  let formattedPrompt = ''
+  let formattedPrompt = '<|begin_of_text|>'
   const hasTools = settings.tools && settings.tools.length > 0
+  const systemPrompts = prompt
+    .filter((msg: any) => msg.role === 'system')
+    .map((msg: any) => messageContentToText(msg.content))
+    .filter(Boolean)
+  const systemSections = [...systemPrompts]
+  const systemText = systemPrompts.join('\n\n')
 
   if (hasTools) {
     const toolDescriptions = settings.tools.map((tool: any) => {
@@ -21,7 +71,7 @@ ${tool.description}
 Parameters: ${paramsStr}`
     }).join('\n\n')
 
-    formattedPrompt += `<|start_header_id|>system<|end_header_id|>\n\nYou are a helpful assistant with access to tools.
+    systemSections.push(`You are a helpful assistant with access to tools.
 
 CRITICAL INSTRUCTIONS:
 
@@ -34,8 +84,13 @@ CRITICAL INSTRUCTIONS:
 
 Available tools:
 
-${toolDescriptions}<|eot_id|>
-`
+${toolDescriptions}`)
+  }
+
+  systemSections.push(...getLlamaPromptHints(systemText))
+
+  if (systemSections.length > 0) {
+    formattedPrompt += `<|start_header_id|>system<|end_header_id|>\n\n${systemSections.join('\n\n')}<|eot_id|>`
   }
 
   formattedPrompt += prompt.map((msg: any) => {
@@ -102,7 +157,7 @@ Analyze this data and respond to the user based on what it says.`
       ? msg.content.map((c: any) => {
         if (c.type === 'text') return c.text
         if (c.type === 'tool-call') {
-          return `{"tool": "${c.toolName}", "parameters": ${JSON.stringify(c.args)}}`
+          return `{"tool": "${c.toolName}", "parameters": ${JSON.stringify(parseToolInput(c))}}`
         }
         return ''
       }).filter(Boolean).join('\n')
