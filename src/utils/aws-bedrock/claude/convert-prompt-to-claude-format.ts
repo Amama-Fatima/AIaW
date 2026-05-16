@@ -1,6 +1,7 @@
 import { processMessagesForClaude } from '../message-processing'
 import { processToolsForClaude } from '../tool-schema'
 import { ConvertedPrompt } from '../types'
+import { getMaxOutputTokens } from '../utils'
 
 /**
  * Converts AI SDK prompt to Claude Bedrock format
@@ -27,7 +28,7 @@ export function convertToClaudeFormat(prompt: any[], settings: any): ConvertedPr
 
   const body: any = {
     anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: settings.maxTokens || 4096,
+    max_tokens: getMaxOutputTokens(settings, 4096),
     messages,
     temperature: settings.temperature,
     top_p: settings.topP

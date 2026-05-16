@@ -87,6 +87,16 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
+ * Gets the AI SDK v5 max output token setting with a legacy fallback.
+ *
+ * AI SDK renamed maxTokens to maxOutputTokens. Keeping maxTokens as a fallback
+ * makes this provider tolerant of older call sites without ignoring new ones.
+ */
+export function getMaxOutputTokens(settings: any, fallback: number): number {
+  return settings.maxOutputTokens ?? settings.maxTokens ?? fallback
+}
+
+/**
  * Converts an async generator to a ReadableStream
  *
  * Required for browser compatibility with streaming responses

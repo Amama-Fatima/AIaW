@@ -31,13 +31,25 @@ const commonSettings = {
   baseURL: String({ title: t('values.apiAddress'), description: t('values.defaultServiceAddress') }),
   apiKey: String({ title: 'API Key', format: 'password' })
 }
-async function openaiGetModelList({ baseURL, apiKey }) {
+
+interface ApiProviderSettings {
+  baseURL?: string
+  apiKey: string
+}
+
+interface ModelListItem {
+  id: string
+  name?: string
+  supportedGenerationMethods?: string[]
+}
+
+async function openaiGetModelList({ baseURL, apiKey }: ApiProviderSettings) {
   const resp = await fetch(`${baseURL}/models`, {
     headers: {
       Authorization: `Bearer ${apiKey}`
     }
   })
-  const { data } = await resp.json()
+  const { data } = await resp.json() as { data: ModelListItem[] }
   return data.map(m => m.id)
 }
 const ProviderTypes: ProviderType[] = [
@@ -52,11 +64,11 @@ const ProviderTypes: ProviderType[] = [
       project: String({ title: t('values.project'), description: t('values.optional') })
     }),
     initialSettings: {},
-    constructor: (...args) => {
+    constructor: (...args: Parameters<typeof createOpenAI>) => {
       const provider = createOpenAI(...args)
-      return modelId => provider.chat(modelId)
+      return (modelId: string) => provider.chat(modelId)
     },
-    getModelList: ({ baseURL, apiKey }) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openai, apiKey })
+    getModelList: ({ baseURL, apiKey }: ApiProviderSettings) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openai, apiKey })
   },
   {
     name: 'openai-responses',
@@ -69,11 +81,11 @@ const ProviderTypes: ProviderType[] = [
       project: String({ title: t('values.project'), description: t('values.optional') })
     }),
     initialSettings: {},
-    constructor: (...args) => {
+    constructor: (...args: Parameters<typeof createOpenAI>) => {
       const provider = createOpenAI(...args)
-      return modelId => provider.responses(modelId)
+      return (modelId: string) => provider.responses(modelId)
     },
-    getModelList: ({ baseURL, apiKey }) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openai, apiKey })
+    getModelList: ({ baseURL, apiKey }: ApiProviderSettings) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openai, apiKey })
   },
   {
     name: 'anthropic',
@@ -85,7 +97,7 @@ const ProviderTypes: ProviderType[] = [
     }),
     initialSettings: {},
     constructor: createAnthropic,
-    getModelList: async (settings) => {
+    getModelList: async (settings: ApiProviderSettings) => {
       const baseURL = settings.baseURL || OfficialBaseURLs.anthropic
       const resp = await fetch(`${baseURL}/models`, {
         headers: {
@@ -93,7 +105,7 @@ const ProviderTypes: ProviderType[] = [
           'anthropic-version': '2023-06-01'
         }
       })
-      const { data } = await resp.json()
+      const { data } = await resp.json() as { data: ModelListItem[] }
       return data.map(m => m.id)
     }
   },
@@ -107,15 +119,18 @@ const ProviderTypes: ProviderType[] = [
     }),
     initialSettings: {},
     constructor: createGoogleGenerativeAI,
-    getModelList: async (settings) => {
+    getModelList: async (settings: ApiProviderSettings) => {
       const baseURL = settings.baseURL || OfficialBaseURLs.google
       const resp = await fetch(`${baseURL}/models`, {
         headers: {
           'x-goog-api-key': settings.apiKey
         }
       })
-      const { models } = await resp.json()
-      return models.filter(m => m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/').at(-1))
+      const { models } = await resp.json() as { models: ModelListItem[] }
+      return models
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name?.split('/').at(-1))
+        .filter((name): name is string => Boolean(name))
     }
   },
   {
@@ -149,7 +164,7 @@ const ProviderTypes: ProviderType[] = [
     settings: Object(commonSettings),
     initialSettings: {},
     constructor: createOpenRouter,
-    getModelList: ({ baseURL, apiKey }) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openrouter, apiKey })
+    getModelList: ({ baseURL, apiKey }: ApiProviderSettings) => openaiGetModelList({ baseURL: baseURL || OfficialBaseURLs.openrouter, apiKey })
   },
   {
     name: 'xai',
@@ -191,7 +206,7 @@ const ProviderTypes: ProviderType[] = [
       includeUsage: true,
       ...options
     }),
-    getModelList: ({ apiKey }) => openaiGetModelList({ baseURL: OfficialBaseURLs.burncloud, apiKey })
+    getModelList: ({ apiKey }: ApiProviderSettings) => openaiGetModelList({ baseURL: OfficialBaseURLs.burncloud, apiKey })
   },
   {
     name: 'togetherai',

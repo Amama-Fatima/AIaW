@@ -1,3 +1,5 @@
+import { getMaxOutputTokens } from '../utils'
+
 function extractBaseToolName(fullName: string): string {
   const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
   const result = match ? match[1] : fullName
@@ -168,7 +170,7 @@ export function convertToMistralFormat(
   const body: any = {
     messages,
     inferenceConfig: {
-      maxTokens: settings.maxTokens || 2048,
+      maxTokens: getMaxOutputTokens(settings, 2048),
       temperature: settings.temperature ?? 0.7,
       topP: settings.topP ?? 0.9
     }

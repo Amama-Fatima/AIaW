@@ -1,3 +1,5 @@
+import { getMaxOutputTokens } from '../utils'
+
 export function convertToLlamaFormat(prompt: any[], settings: any): any {
   let formattedPrompt = ''
   const hasTools = settings.tools && settings.tools.length > 0
@@ -113,7 +115,7 @@ Analyze this data and respond to the user based on what it says.`
 
   return {
     prompt: formattedPrompt,
-    max_gen_len: settings.maxTokens || 2048,
+    max_gen_len: getMaxOutputTokens(settings, 2048),
     temperature: settings.temperature || 0.7,
     top_p: settings.topP || 0.9
   }

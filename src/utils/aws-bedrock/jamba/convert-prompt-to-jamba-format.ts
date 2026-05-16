@@ -1,3 +1,5 @@
+import { getMaxOutputTokens } from '../utils'
+
 function extractBaseToolName(fullName: string): string {
   const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
   const result = match ? match[1] : fullName
@@ -148,7 +150,7 @@ function convertToJambaConverseFormat(
   }
 
   const inferenceConfig = {
-    maxTokens: settings.maxTokens || 4096,
+    maxTokens: getMaxOutputTokens(settings, 4096),
     temperature: settings.temperature !== undefined ? settings.temperature : 0.7,
     topP: settings.topP !== undefined ? settings.topP : 1.0
   }

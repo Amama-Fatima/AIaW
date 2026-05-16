@@ -1,3 +1,5 @@
+import { getMaxOutputTokens } from '../utils'
+
 function extractBaseToolName(fullName: string): string {
   const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
   const result = match ? match[1] : fullName
@@ -146,7 +148,7 @@ function convertToCohereConverseFormat(
   }
 
   const inferenceConfig = {
-    maxTokens: settings.maxTokens || 4096,
+    maxTokens: getMaxOutputTokens(settings, 4096),
     temperature: settings.temperature !== undefined ? settings.temperature : 0.3,
     topP: settings.topP !== undefined ? Math.min(settings.topP, 0.99) : 0.99
   }
