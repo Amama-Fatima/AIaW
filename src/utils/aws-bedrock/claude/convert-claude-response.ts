@@ -19,7 +19,7 @@ export function convertClaudeResponse(
         type: 'tool-call' as const,
         toolCallId: item.id,
         toolName: fullToolName,
-        args: item.input
+        input: JSON.stringify(item.input)
       }
     }
 

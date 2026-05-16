@@ -8,6 +8,7 @@ import { processNovaConverseStream } from './nova/nova-stream-processor'
 import { processJambaStream } from './jamba/jamba-stream-processor'
 import { processMistralStream } from './mistral/mistral-stream-processor'
 import { processCohereStream } from './cohere/cohere-stream-processor'
+import { modelIdStartsWith } from './utils'
 
 /**
  * Creates an async generator that yields AI SDK stream parts from Bedrock stream
@@ -45,7 +46,7 @@ export async function* createBedrockStream(
     warnings
   }
 
-  if (modelId.startsWith('anthropic.')) {
+  if (modelIdStartsWith(modelId, 'anthropic.')) {
     yield* processClaudeStream(
       stream,
       toolMapping,
@@ -64,27 +65,27 @@ export async function* createBedrockStream(
     return
   }
 
-  if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
+  if (modelIdStartsWith(modelId, 'meta.llama')) {
     yield* processLlamaStream(stream, { currentTextId, hasTextStarted, hasEmittedFinish })
     return
   }
 
-  if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+  if (modelIdStartsWith(modelId, 'mistral.')) {
     yield* processMistralStream(stream, toolMapping)
     return
   }
 
-  if (modelId.startsWith('amazon.nova')) {
+  if (modelIdStartsWith(modelId, 'amazon.nova')) {
     yield* processNovaConverseStream(stream, toolMapping)
     return
   }
 
-  if (modelId.startsWith('cohere.')) {
+  if (modelIdStartsWith(modelId, 'cohere.')) {
     yield* processCohereStream(stream, toolMapping)
     return
   }
 
-  if (modelId.startsWith('ai21.')) {
+  if (modelIdStartsWith(modelId, 'ai21.')) {
     yield* processJambaStream(stream, toolMapping)
   }
 }

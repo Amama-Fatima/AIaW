@@ -96,6 +96,25 @@ export function getMaxOutputTokens(settings: any, fallback: number): number {
   return settings.maxOutputTokens ?? settings.maxTokens ?? fallback
 }
 
+const BedrockInferenceProfilePrefixes = ['us', 'eu', 'apac', 'global', 'jp', 'au']
+
+/**
+ * Removes the geography prefix from Bedrock system inference profile IDs.
+ *
+ * Example: global.anthropic.claude-sonnet-4-5... -> anthropic.claude-sonnet-4-5...
+ */
+export function getBaseModelId(modelId: string): string {
+  const [prefix, ...rest] = modelId.split('.')
+  if (rest.length > 0 && BedrockInferenceProfilePrefixes.includes(prefix)) {
+    return rest.join('.')
+  }
+  return modelId
+}
+
+export function modelIdStartsWith(modelId: string, prefix: string): boolean {
+  return getBaseModelId(modelId).startsWith(prefix)
+}
+
 /**
  * Converts an async generator to a ReadableStream
  *

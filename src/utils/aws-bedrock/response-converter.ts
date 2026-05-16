@@ -5,6 +5,7 @@ import { convertNovaResponse } from './nova/convert-nova-response'
 import { convertCohereResponse } from './cohere/convert-cohere-response'
 import { convertJambaResponse } from './jamba/convert-jamba-response'
 import { convertMistralResponse } from './mistral/convert-mistral-response'
+import { modelIdStartsWith } from './utils'
 
 /**
  * Main response converter - routes to model-specific converter
@@ -23,17 +24,17 @@ export function convertBedrockResponse(
 ): StandardResponse {
   let partial: Partial<StandardResponse>
 
-  if (modelId.startsWith('anthropic.')) {
+  if (modelIdStartsWith(modelId, 'anthropic.')) {
     partial = convertClaudeResponse(responseBody, toolMapping)
-  } else if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
+  } else if (modelIdStartsWith(modelId, 'meta.llama')) {
     partial = convertLlamaResponse(responseBody)
-  } else if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+  } else if (modelIdStartsWith(modelId, 'mistral.')) {
     partial = convertMistralResponse(responseBody, toolMapping)
-  } else if (modelId.startsWith('amazon.nova')) {
+  } else if (modelIdStartsWith(modelId, 'amazon.nova')) {
     partial = convertNovaResponse(responseBody, toolMapping)
-  } else if (modelId.startsWith('cohere.')) {
+  } else if (modelIdStartsWith(modelId, 'cohere.')) {
     partial = convertCohereResponse(responseBody, toolMapping)
-  } else if (modelId.startsWith('ai21.')) {
+  } else if (modelIdStartsWith(modelId, 'ai21.')) {
     partial = convertJambaResponse(responseBody, toolMapping)
   } else {
     partial = { content: [], finishReason: 'stop', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }

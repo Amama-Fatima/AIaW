@@ -6,6 +6,7 @@ import { convertToLlamaFormat } from './llama/convert-prompt-to-llama-format'
 import { convertToMistralFormat } from './mistral/convert-prompt-to-mistral-format'
 import { convertToNovaFormat } from './nova/convert-prompt-to-nova-format'
 import type { BedrockRequestBody } from './types'
+import { modelIdStartsWith } from './utils'
 
 /**
  * Converts AI SDK prompt to the appropriate Bedrock model format
@@ -28,21 +29,21 @@ export function convertPromptToBedrock(
   prompt: any[],
   settings: any
 ): BedrockRequestBody {
-  if (modelId.startsWith('anthropic.')) {
+  if (modelIdStartsWith(modelId, 'anthropic.')) {
     const { body, toolMapping } = convertToClaudeFormat(prompt, settings)
     body._toolMapping = toolMapping
     return body
   }
 
-  if (modelId.startsWith('meta.llama') || modelId.startsWith('us.meta.llama')) {
+  if (modelIdStartsWith(modelId, 'meta.llama')) {
     return convertToLlamaFormat(prompt, settings)
   }
 
-  if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.')) {
+  if (modelIdStartsWith(modelId, 'mistral.')) {
     return convertToMistralFormat(prompt, settings)
   }
 
-  if (modelId.startsWith('amazon.nova')) {
+  if (modelIdStartsWith(modelId, 'amazon.nova')) {
     const result = convertToNovaFormat(prompt, settings)
 
     result.body._toolMapping = result.toolMapping
@@ -51,13 +52,13 @@ export function convertPromptToBedrock(
     return result.body
   }
 
-  if (modelId.startsWith('cohere.')) {
+  if (modelIdStartsWith(modelId, 'cohere.')) {
     const result = convertToCohereFormat(prompt, settings)
     result.body._toolMapping = result.toolMapping
     result.body._useConverseApi = result.useConverseApi
     return result.body
   }
-  if (modelId.startsWith('ai21.')) {
+  if (modelIdStartsWith(modelId, 'ai21.')) {
     return convertToJambaFormat(prompt, settings)
   }
 }

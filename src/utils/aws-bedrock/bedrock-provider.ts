@@ -10,7 +10,7 @@ import type { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provid
 import { convertPromptToBedrock } from './prompt-converter'
 import { convertBedrockResponse } from './response-converter'
 import { createBedrockStream } from './stream-processor'
-import { convertAsyncGeneratorToReadableStream } from './utils'
+import { convertAsyncGeneratorToReadableStream, modelIdStartsWith } from './utils'
 import type { BedrockConfig, BedrockModelFactory } from './types'
 
 /**
@@ -54,7 +54,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         delete body._toolMapping
         delete body._useConverseApi
 
-        if (modelId.startsWith('cohere.')) {
+        if (modelIdStartsWith(modelId, 'cohere.')) {
           const commandParams = {
             modelId,
             messages: body.messages,
@@ -78,9 +78,8 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           }
         }
 
-        if ((modelId.startsWith('amazon.nova') ||
-          modelId.startsWith('mistral.') ||
-          modelId.startsWith('us.mistral.')) && useConverseApi) {
+        if ((modelIdStartsWith(modelId, 'amazon.nova') ||
+          modelIdStartsWith(modelId, 'mistral.')) && useConverseApi) {
           const commandParams = {
             modelId,
             messages: body.messages,
@@ -101,7 +100,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           }
         }
 
-        if (modelId.startsWith('ai21.') && useConverseApi) {
+        if (modelIdStartsWith(modelId, 'ai21.') && useConverseApi) {
           const commandParams = {
             modelId,
             messages: body.messages,
@@ -149,7 +148,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
       async doStream(options: LanguageModelV2CallOptions) {
         const { prompt, ...settings } = options
 
-        if (modelId.startsWith('mistral.') || modelId.startsWith('us.mistral.') || modelId.startsWith('ai21.')) {
+        if (modelIdStartsWith(modelId, 'mistral.') || modelIdStartsWith(modelId, 'ai21.')) {
           const result = await this.doGenerate(options)
 
           async function* syntheticStream() {
@@ -206,7 +205,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         delete body._toolMapping
         delete body._useConverseApi
 
-        if (modelId.startsWith('cohere.')) {
+        if (modelIdStartsWith(modelId, 'cohere.')) {
           const commandParams = {
             modelId,
             messages: body.messages,
@@ -241,7 +240,7 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           }
         }
 
-        if (modelId.startsWith('amazon.nova') && useConverseApi) {
+        if (modelIdStartsWith(modelId, 'amazon.nova') && useConverseApi) {
           const command = new ConverseStreamCommand({
             modelId,
             messages: body.messages,

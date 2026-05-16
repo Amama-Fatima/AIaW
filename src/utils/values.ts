@@ -13,6 +13,7 @@ import { createCohere } from '@ai-sdk/cohere'
 import { createGroq } from '@ai-sdk/groq'
 import { createOllama } from 'ai-sdk-ollama'
 import { createDeepSeek } from '@ai-sdk/deepseek'
+import { BedrockClient, ListFoundationModelsCommand, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock'
 import { i18n } from 'src/boot/i18n'
 import { fetch } from './platform-api'
 import { createBedrock } from './aws-bedrock'
@@ -43,6 +44,35 @@ interface ModelListItem {
   supportedGenerationMethods?: string[]
 }
 
+interface BedrockProviderSettings {
+  region: string
+  accessKeyId: string
+  secretAccessKey: string
+}
+
+const BedrockInferenceProfilePrefixes = ['us', 'eu', 'apac', 'global', 'jp', 'au']
+const SupportedBedrockModelPrefixes = [
+  'anthropic.',
+  'meta.llama',
+  'mistral.',
+  'amazon.nova',
+  'cohere.',
+  'ai21.'
+]
+
+function getBedrockBaseModelId(modelId: string) {
+  const [prefix, ...rest] = modelId.split('.')
+  if (rest.length > 0 && BedrockInferenceProfilePrefixes.includes(prefix)) {
+    return rest.join('.')
+  }
+  return modelId
+}
+
+function isSupportedBedrockModelId(modelId: string) {
+  const baseModelId = getBedrockBaseModelId(modelId)
+  return SupportedBedrockModelPrefixes.some(prefix => baseModelId.startsWith(prefix))
+}
+
 async function openaiGetModelList({ baseURL, apiKey }: ApiProviderSettings) {
   const resp = await fetch(`${baseURL}/models`, {
     headers: {
@@ -52,6 +82,42 @@ async function openaiGetModelList({ baseURL, apiKey }: ApiProviderSettings) {
   const { data } = await resp.json() as { data: ModelListItem[] }
   return data.map(m => m.id)
 }
+
+async function bedrockGetModelList(settings: BedrockProviderSettings) {
+  const client = new BedrockClient({
+    region: settings.region,
+    credentials: {
+      accessKeyId: settings.accessKeyId,
+      secretAccessKey: settings.secretAccessKey
+    }
+  })
+
+  const response = await client.send(new ListFoundationModelsCommand({
+    byInferenceType: 'ON_DEMAND',
+    byOutputModality: 'TEXT'
+  }))
+
+  const foundationModelIds = (response.modelSummaries || [])
+    .filter(model => model.modelLifecycle?.status === 'ACTIVE')
+    .filter(model => model.modelId)
+    .map(model => model.modelId as string)
+    .filter(isSupportedBedrockModelId)
+
+  const inferenceProfiles = await client.send(new ListInferenceProfilesCommand({
+    typeEquals: 'SYSTEM_DEFINED',
+    maxResults: 1000
+  }))
+
+  const inferenceProfileIds = (inferenceProfiles.inferenceProfileSummaries || [])
+    .filter(profile => profile.status === 'ACTIVE')
+    .filter(profile => profile.inferenceProfileId)
+    .map(profile => profile.inferenceProfileId as string)
+    .filter(isSupportedBedrockModelId)
+
+  return [...new Set([...foundationModelIds, ...inferenceProfileIds])]
+    .sort()
+}
+
 const ProviderTypes: ProviderType[] = [
   {
     name: 'openai',
@@ -263,45 +329,7 @@ const ProviderTypes: ProviderType[] = [
       region: 'ap-south-1'
     },
     constructor: createBedrock,
-    getModelList: async () => {
-      return [
-        // Mistral models
-        'mistral.mistral-large-2402-v1:0',
-        'mistral.mistral-large-2407-v1:0',
-        'mistral.mistral-small-2402-v1:0',
-        'mistral.mixtral-8x7b-instruct-v0:1',
-
-        // Claude models
-        'anthropic.claude-3-haiku-20240307-v1:0',
-        'anthropic.claude-3-sonnet-20240229-v1:0',
-        'anthropic.claude-3-5-sonnet-20240620-v1:0',
-
-        // Meta Llama models
-        'meta.llama3-8b-instruct-v1:0',
-        'meta.llama3-70b-instruct-v1:0',
-        'meta.llama3-1-8b-instruct-v1:0',
-        'meta.llama3-1-70b-instruct-v1:0',
-        'meta.llama3-2-1b-instruct-v1:0',
-        'meta.llama3-2-3b-instruct-v1:0',
-        'meta.llama3-2-11b-instruct-v1:0',
-        'meta.llama3-2-90b-instruct-v1:0',
-
-        // Amazon Nova models
-        'amazon.nova-micro-v1:0',
-        'amazon.nova-lite-v1:0',
-        'amazon.nova-pro-v1:0',
-
-        // Cohere models
-        'cohere.command-r-v1:0',
-        'cohere.command-r-plus-v1:0',
-
-        // AI21 Labs
-        'ai21.jamba-instruct-v1:0',
-
-        // Stability AI
-        'stability.stable-diffusion-xl-v1'
-      ]
-    }
+    getModelList: bedrockGetModelList
   }
 ]
 
