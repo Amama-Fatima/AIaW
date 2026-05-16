@@ -13,25 +13,10 @@ export function convertToNovaFormat(prompt: any[], settings: any): { body: any; 
       return {
         role: 'user',
         content: msg.content.map((c: any) => {
-          let resultContent
-          const resultData = c.result || c.content || c
-          if (typeof resultData === 'string') {
-            try {
-              const parsed = JSON.parse(resultData)
-              resultContent = [{ json: parsed }]
-            } catch {
-              resultContent = [{ text: resultData }]
-            }
-          } else if (resultData && typeof resultData === 'object') {
-            resultContent = [{ json: resultData }]
-          } else {
-            resultContent = [{ text: String(resultData || '') }]
-          }
-
           return {
             toolResult: {
               toolUseId: c.toolCallId,
-              content: resultContent,
+              content: createNovaToolResultContent(c),
               status: 'success'
             }
           }
@@ -119,8 +104,7 @@ export function convertToNovaFormat(prompt: any[], settings: any): { body: any; 
     messages,
     inferenceConfig: {
       maxTokens: getMaxOutputTokens(settings, 2048),
-      temperature: 0,
-      topP: settings.topP
+      temperature: 0
     }
   }
 
@@ -182,7 +166,12 @@ function cleanNovaSchemaProperty(prop: any): any {
 
   for (const field of allowedFields) {
     if (prop[field] !== undefined) {
-      if (field === 'items' || field === 'properties') {
+      if (field === 'properties') {
+        cleaned.properties = {}
+        for (const [key, value] of Object.entries(prop.properties)) {
+          cleaned.properties[key] = cleanNovaSchemaProperty(value)
+        }
+      } else if (field === 'items') {
         cleaned[field] = cleanNovaSchemaProperty(prop[field])
       } else {
         cleaned[field] = prop[field]
@@ -191,4 +180,44 @@ function cleanNovaSchemaProperty(prop: any): any {
   }
 
   return cleaned
+}
+
+function createNovaToolResultContent(toolResult: any): any[] {
+  const resultData = extractToolResultData(toolResult)
+
+  if (Array.isArray(resultData)) {
+    const textContent = resultData
+      .filter((item: any) => item.type === 'text')
+      .map((item: any) => item.text || item.contentText)
+      .filter(Boolean)
+      .join('\n')
+
+    return textContent ? stringToNovaContent(textContent) : [{ json: resultData }]
+  }
+
+  if (typeof resultData === 'string') {
+    return stringToNovaContent(resultData)
+  }
+
+  if (resultData && typeof resultData === 'object') {
+    return [{ json: resultData }]
+  }
+
+  return [{ text: String(resultData || '') }]
+}
+
+function extractToolResultData(toolResult: any): any {
+  if (toolResult.output?.type === 'content' && Array.isArray(toolResult.output.value)) {
+    return toolResult.output.value
+  }
+
+  return toolResult.result ?? toolResult.content ?? toolResult
+}
+
+function stringToNovaContent(text: string): any[] {
+  try {
+    return [{ json: JSON.parse(text) }]
+  } catch {
+    return [{ text }]
+  }
 }
