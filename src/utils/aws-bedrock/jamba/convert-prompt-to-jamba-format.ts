@@ -6,6 +6,55 @@ function extractBaseToolName(fullName: string): string {
   return result
 }
 
+function toJambaToolName(toolName: string): string {
+  return extractBaseToolName(toolName).replace(/-/g, '_')
+}
+
+function messageContentToText(content: any): string {
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((c: any) => {
+        if (c.type === 'text') return c.text
+        if (c.text) return c.text
+        return ''
+      })
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  return content?.text || ''
+}
+
+function getJambaPromptHints(systemText: string): string[] {
+  const hints: string[] = []
+
+  if (systemText.includes('/emotions/nachoneko/')) {
+    hints.push(`Emoticon formatting rules:
+- The emoticons are available to you through the system prompt.
+- When using an emoticon, output an HTML img tag, not a bare path.
+- Use this exact format: <img src="/emotions/nachoneko/1.webp" width="100">
+- The file extension must be exactly ".webp".
+- Choose one of the listed /emotions/nachoneko/*.webp paths exactly as written.`)
+  }
+
+  if (systemText.includes('aiaw-mermaid') || systemText.toLowerCase().includes('mermaid')) {
+    hints.push(`Mermaid chart rules:
+- Mermaid chart support is available to you through the system prompt.
+- When a chart is useful, write a fenced mermaid code block.
+- Use this exact fence format:
+\`\`\`mermaid
+flowchart TD
+  A[Start] --> B[End]
+\`\`\``)
+  }
+
+  return hints
+}
+
 export function convertToJambaFormat(
   prompt: any[],
   settings: any
@@ -25,7 +74,7 @@ function convertToJambaConverseFormat(
 
   const finalPrompt = insertDummyAssistantMessages(mergedPrompt)
 
-  const messages = finalPrompt.map((msg: any) => {
+  const messages = finalPrompt.filter((msg: any) => msg.role !== 'system').map((msg: any) => {
     if (msg.role === 'tool') {
       const toolContent = msg.content.map((c: any) => {
         let actualResult
@@ -48,8 +97,9 @@ function convertToJambaConverseFormat(
         let resultContent
         if (typeof actualResult === 'string') {
           try {
-            const parsed = JSON.parse(actualResult)
-            resultContent = [{ json: parsed }]
+            const trimmed = actualResult.trim()
+            const parsed = /^[{[]/.test(trimmed) ? JSON.parse(trimmed) : undefined
+            resultContent = parsed === undefined ? [{ text: actualResult }] : [{ json: parsed }]
           } catch (e) {
             resultContent = [{ text: actualResult }]
           }
@@ -88,7 +138,7 @@ function convertToJambaConverseFormat(
           return {
             toolUse: {
               toolUseId: c.toolCallId,
-              name: c.toolName,
+              name: toJambaToolName(c.toolName),
               input: inputObject
             }
           }
@@ -121,8 +171,7 @@ function convertToJambaConverseFormat(
 
   if (settings.tools && settings.tools.length > 0) {
     const tools = settings.tools.map((tool: any) => {
-      const baseName = extractBaseToolName(tool.name)
-      const safeName = baseName.replace(/-/g, '_')
+      const safeName = toJambaToolName(tool.name)
 
       if (safeName !== tool.name) {
         toolNameMapping[safeName] = tool.name
@@ -166,10 +215,15 @@ function convertToJambaConverseFormat(
 
   const systemMessages = finalPrompt.filter(msg => msg.role === 'system')
   if (systemMessages.length > 0) {
-    body.system = systemMessages.map(msg => {
-      const text = typeof msg.content === 'string' ? msg.content : msg.content[0]?.text || ''
-      return { text }
-    })
+    const systemText = systemMessages
+      .map(msg => messageContentToText(msg.content))
+      .filter(Boolean)
+      .join('\n\n')
+
+    body.system = [
+      systemText,
+      ...getJambaPromptHints(systemText)
+    ].filter(Boolean).map(text => ({ text }))
   }
 
   return {

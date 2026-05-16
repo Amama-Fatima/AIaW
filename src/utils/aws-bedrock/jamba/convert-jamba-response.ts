@@ -45,9 +45,9 @@ export function convertJambaResponse(
   const inputTokens = responseBody.usage?.inputTokens || 0
   const outputTokens = responseBody.usage?.outputTokens || 0
 
-  const stopReason = output?.stopReason
+  const stopReason = responseBody.stopReason
 
-  let finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' = 'stop'
+  let finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' | 'error' = 'stop'
 
   if (stopReason === 'tool_use') {
     finishReason = 'tool-calls'
@@ -57,6 +57,8 @@ export function convertJambaResponse(
     finishReason = 'stop'
   } else if (stopReason === 'content_filtered') {
     finishReason = 'content-filter'
+  } else if (stopReason === 'malformed_model_output' || stopReason === 'malformed_tool_use') {
+    finishReason = 'error'
   }
 
   const result = {

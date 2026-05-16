@@ -58,7 +58,6 @@ export function convertPromptToBedrock(
     result.body._useConverseApi = result.useConverseApi
     return result.body
   }
-  if (modelIdStartsWith(modelId, 'ai21.')) {
-    return convertToJambaFormat(prompt, settings)
-  }
+
+  return convertToJambaFormat(prompt, settings)
 }
