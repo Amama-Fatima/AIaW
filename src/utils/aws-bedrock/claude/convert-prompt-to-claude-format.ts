@@ -29,9 +29,13 @@ export function convertToClaudeFormat(prompt: any[], settings: any): ConvertedPr
   const body: any = {
     anthropic_version: 'bedrock-2023-05-31',
     max_tokens: getMaxOutputTokens(settings, 4096),
-    messages,
-    temperature: settings.temperature,
-    top_p: settings.topP
+    messages
+  }
+
+  if (settings.temperature !== undefined) {
+    body.temperature = settings.temperature
+  } else if (settings.topP !== undefined) {
+    body.top_p = settings.topP
   }
 
   if (systemMessage) {
