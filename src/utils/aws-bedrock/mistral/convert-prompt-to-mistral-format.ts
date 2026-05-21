@@ -1,19 +1,52 @@
 import { getMaxOutputTokens } from '../utils'
 
-function extractBaseToolName(fullName: string): string {
-  const match = fullName.match(/^[a-zA-Z0-9]+-(.+)$/) || fullName.match(/^[a-zA-Z0-9]+_(.+)$/)
-  const result = match ? match[1] : fullName
-  return result
+function simpleHash(value: string): string {
+  let hash = 0
+
+  for (let i = 0; i < value.length; i++) {
+    hash = Math.imul(31, hash) + value.charCodeAt(i) | 0
+  }
+
+  return Math.abs(hash).toString(36)
+}
+
+function createSafeToolName(fullName: string, usedNames: Set<string>): string {
+  const normalized = fullName
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/-/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'tool'
+
+  const maxNameLength = 64
+  const hash = simpleHash(fullName)
+  const baseName = normalized.length > maxNameLength
+    ? `${normalized.slice(0, maxNameLength - hash.length - 1)}_${hash}`
+    : normalized
+
+  let candidate = baseName
+  let suffix = 2
+
+  while (usedNames.has(candidate)) {
+    const suffixText = `_${suffix++}`
+    candidate = `${baseName.slice(0, maxNameLength - suffixText.length)}${suffixText}`
+  }
+
+  usedNames.add(candidate)
+
+  return candidate
 }
 
 export function convertToMistralFormat(
   prompt: any[],
-  settings: any
+  settings: any,
+  modelId = ''
 ): {
   body: any;
   toolMapping: { [key: string]: string };
   useConverseApi: boolean
 } {
+  const useTextToolHistory = modelId.includes('magistral')
+
   const normalizedPrompt = prompt.map(msg => {
     if (msg.role === 'tool') {
       return { ...msg, role: 'user' }
@@ -59,11 +92,43 @@ export function convertToMistralFormat(
     finalPrompt.push(current)
   }
 
+  const toolNameMapping: { [safeName: string]: string } = {}
+  const originalToSafeToolName: { [originalName: string]: string } = {}
+  let toolConfig: any
+
+  if (settings.tools && settings.tools.length > 0) {
+    const usedToolNames = new Set<string>()
+    const tools = settings.tools.map((tool: any) => {
+      const safeName = createSafeToolName(tool.name, usedToolNames)
+
+      toolNameMapping[safeName] = tool.name
+      originalToSafeToolName[tool.name] = safeName
+
+      const originalSchema = tool.inputSchema || tool.parameters
+      const cleanedSchema = cleanMistralSchema(originalSchema)
+
+      return {
+        toolSpec: {
+          name: safeName,
+          description: tool.description || '',
+          inputSchema: {
+            json: cleanedSchema
+          }
+        }
+      }
+    })
+
+    toolConfig = {
+      tools,
+      toolChoice: { auto: {} }
+    }
+  }
+
   const messages = finalPrompt.map((msg: any) => {
     const processedContent = Array.isArray(msg.content)
       ? msg.content.map((c: any) => {
         if (c.type === 'text') {
-          return { text: c.text }
+          return { text: useTextToolHistory ? replaceToolNameAliases(c.text, originalToSafeToolName) : c.text }
         }
 
         if (c.type === 'tool-call') {
@@ -75,17 +140,31 @@ export function convertToMistralFormat(
           }
 
           return {
-            toolUse: {
-              toolUseId: c.toolCallId,
-              name: c.toolName,
-              input: inputObject
-            }
+            ...(useTextToolHistory
+              ? {
+                  text: `[TOOL_CALLS]${originalToSafeToolName[c.toolName] || c.toolName}${JSON.stringify(inputObject)}`
+                }
+              : {
+                  toolUse: {
+                    toolUseId: c.toolCallId,
+                    name: originalToSafeToolName[c.toolName] || c.toolName,
+                    input: inputObject
+                  }
+                })
           }
         }
 
         if (c.type === 'tool-result') {
-          let resultContent
           const resultData = c.output?.value || c.result || c.content || c
+          const resultText = stringifyToolResult(resultData)
+
+          if (useTextToolHistory) {
+            return {
+              text: `Tool result for ${originalToSafeToolName[c.toolName] || c.toolName}:\n${resultText}`
+            }
+          }
+
+          let resultContent
 
           if (Array.isArray(resultData)) {
             const textContent = resultData
@@ -109,8 +188,7 @@ export function convertToMistralFormat(
           return {
             toolResult: {
               toolUseId: c.toolCallId,
-              content: resultContent,
-              status: 'success'
+              content: resultContent
             }
           }
         }
@@ -134,38 +212,6 @@ export function convertToMistralFormat(
       content: finalContent
     }
   })
-
-  let toolConfig: any
-  const toolNameMapping: { [safeName: string]: string } = {}
-
-  if (settings.tools && settings.tools.length > 0) {
-    const tools = settings.tools.map((tool: any) => {
-      const baseName = extractBaseToolName(tool.name)
-      const safeName = baseName.replace(/-/g, '_')
-
-      if (safeName !== tool.name) {
-        toolNameMapping[safeName] = tool.name
-      }
-
-      const originalSchema = tool.inputSchema || tool.parameters
-      const cleanedSchema = cleanMistralSchema(originalSchema)
-
-      return {
-        toolSpec: {
-          name: safeName,
-          description: tool.description || '',
-          inputSchema: {
-            json: cleanedSchema
-          }
-        }
-      }
-    })
-
-    toolConfig = {
-      tools,
-      toolChoice: { auto: {} }
-    }
-  }
 
   const body: any = {
     messages,
@@ -233,4 +279,38 @@ function cleanMistralSchemaProperty(prop: any): any {
   }
 
   return cleaned
+}
+
+function stringifyToolResult(resultData: any): string {
+  if (Array.isArray(resultData)) {
+    const textContent = resultData
+      .filter((item: any) => item.type === 'text')
+      .map((item: any) => item.text || item.contentText)
+      .filter(Boolean)
+      .join('\n')
+
+    return textContent || JSON.stringify(resultData)
+  }
+
+  if (typeof resultData === 'string') {
+    return resultData
+  }
+
+  if (resultData && typeof resultData === 'object') {
+    return JSON.stringify(resultData)
+  }
+
+  return String(resultData || '')
+}
+
+function replaceToolNameAliases(text: string, originalToSafeToolName: { [originalName: string]: string }): string {
+  let result = text
+
+  for (const [originalName, safeName] of Object.entries(originalToSafeToolName)) {
+    if (originalName === safeName) continue
+
+    result = result.split(originalName).join(safeName)
+  }
+
+  return result
 }

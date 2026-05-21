@@ -13,6 +13,67 @@ import { createBedrockStream } from './stream-processor'
 import { convertAsyncGeneratorToReadableStream, modelIdStartsWith } from './utils'
 import type { BedrockConfig, BedrockModelFactory } from './types'
 
+function summarizeConverseBody(body: any) {
+  return {
+    messageCount: body.messages?.length ?? 0,
+    messageRoles: body.messages?.map((message: any) => message.role) ?? [],
+    contentBlockTypes: body.messages?.map((message: any) =>
+      message.content?.map((block: any) =>
+        block.text !== undefined
+          ? 'text'
+          : block.toolUse
+            ? `toolUse:${block.toolUse.name}:${block.toolUse.toolUseId}`
+            : block.toolResult
+              ? `toolResult:${block.toolResult.toolUseId}${block.toolResult.status ? `:${block.toolResult.status}` : ''}`
+              : Object.keys(block)[0] || 'unknown'
+      ) ?? []
+    ) ?? [],
+    toolCount: body.toolConfig?.tools?.length ?? 0,
+    toolNames: body.toolConfig?.tools?.map((tool: any) => tool.toolSpec?.name).filter(Boolean) ?? [],
+    hasToolChoice: Boolean(body.toolConfig?.toolChoice),
+    inferenceConfig: body.inferenceConfig,
+    systemCount: body.system?.length ?? 0
+  }
+}
+
+function summarizeConverseResponse(response: any) {
+  const message = response?.output?.message
+
+  return {
+    stopReason: response?.stopReason,
+    usage: response?.usage,
+    outputRole: message?.role,
+    outputBlockTypes: message?.content?.map((block: any) =>
+      block.text !== undefined
+        ? 'text'
+        : block.toolUse
+          ? `toolUse:${block.toolUse.name}:${block.toolUse.toolUseId}`
+          : block.toolResult
+            ? `toolResult:${block.toolResult.toolUseId}${block.toolResult.status ? `:${block.toolResult.status}` : ''}`
+            : Object.keys(block)[0] || 'unknown'
+    ) ?? []
+  }
+}
+
+function logMistralConverseRequest(modelId: string, body: any, toolMapping: Record<string, string>) {
+  if (!modelIdStartsWith(modelId, 'mistral.')) return
+
+  console.log('[Bedrock Mistral] Converse request summary:', {
+    modelId,
+    ...summarizeConverseBody(body),
+    toolMapping
+  })
+}
+
+function logMistralConverseResponse(modelId: string, response: any) {
+  if (!modelIdStartsWith(modelId, 'mistral.')) return
+
+  console.log('[Bedrock Mistral] Converse response summary:', {
+    modelId,
+    ...summarizeConverseResponse(response)
+  })
+}
+
 /**
  * Creates a Bedrock provider with AWS credentials
  */
@@ -91,11 +152,25 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           const command = new ConverseCommand(commandParams)
 
           try {
+            logMistralConverseRequest(modelId, body, toolMapping)
             const response = await client.send(command)
+            logMistralConverseResponse(modelId, response)
             const converted = convertBedrockResponse(modelId, response, body, toolMapping)
             return converted
           } catch (error) {
-            console.error('[Bedrock] Error during Converse API call:', error.message)
+            if (modelIdStartsWith(modelId, 'mistral.')) {
+              console.error(`[Bedrock Mistral] Converse API call failed: ${error.name}: ${error.message}`)
+              console.error('[Bedrock Mistral] Converse API call failed:', {
+                modelId,
+                request: summarizeConverseBody(body),
+                errorName: error.name,
+                errorMessage: error.message,
+                errorCode: error.Code || error.code,
+                metadata: error.$metadata
+              })
+            } else {
+              console.error('[Bedrock] Error during Converse API call:', error.message)
+            }
             throw error
           }
         }

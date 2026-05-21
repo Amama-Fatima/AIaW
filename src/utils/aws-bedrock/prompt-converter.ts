@@ -40,7 +40,7 @@ export function convertPromptToBedrock(
   }
 
   if (modelIdStartsWith(modelId, 'mistral.')) {
-    return convertToMistralFormat(prompt, settings)
+    return convertToMistralFormat(prompt, settings, modelId)
   }
 
   if (modelIdStartsWith(modelId, 'amazon.nova')) {
