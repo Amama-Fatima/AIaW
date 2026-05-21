@@ -45,7 +45,8 @@ export function convertToMistralFormat(
   toolMapping: { [key: string]: string };
   useConverseApi: boolean
 } {
-  const useTextToolHistory = modelId.includes('magistral')
+  const useTextToolHistory = true
+  const supportsNativeToolConfig = supportsMistralNativeToolConfig(modelId)
 
   const normalizedPrompt = prompt.map(msg => {
     if (msg.role === 'tool') {
@@ -207,11 +208,21 @@ export function convertToMistralFormat(
       }
     }
 
+    const nonEmptyContent = finalContent.filter((content: any) => {
+      if (content.text !== undefined) {
+        return content.text.trim() !== ''
+      }
+      if (content.toolUse || content.toolResult || content.image || content.document || content.video) {
+        return true
+      }
+      return Object.keys(content).length > 0
+    })
+
     return {
       role: msg.role === 'system' ? 'user' : msg.role,
-      content: finalContent
+      content: nonEmptyContent
     }
-  })
+  }).filter((message: any) => message.content.length > 0)
 
   const body: any = {
     messages,
@@ -223,6 +234,13 @@ export function convertToMistralFormat(
   }
 
   if (toolConfig) {
+    if (!supportsNativeToolConfig) {
+      throw new Error(
+        `AWS Bedrock model ${modelId} does not support native tool use. ` +
+        'Disable tools/plugins or choose a Mistral model that supports Bedrock tool use, such as Mistral Large or Magistral.'
+      )
+    }
+
     body.toolConfig = toolConfig
   }
 
@@ -313,4 +331,10 @@ function replaceToolNameAliases(text: string, originalToSafeToolName: { [origina
   }
 
   return result
+}
+
+function supportsMistralNativeToolConfig(modelId: string): boolean {
+  const normalizedModelId = modelId.toLowerCase()
+
+  return normalizedModelId.includes('large') || normalizedModelId.includes('magistral')
 }
