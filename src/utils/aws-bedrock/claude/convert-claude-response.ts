@@ -11,7 +11,6 @@ export function convertClaudeResponse(
     }
 
     if (item.type === 'tool_use') {
-      // Restore full tool name using mapping
       const baseToolName = item.name
       const fullToolName = toolMapping[baseToolName] || baseToolName
 

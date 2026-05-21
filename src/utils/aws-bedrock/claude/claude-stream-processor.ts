@@ -86,7 +86,6 @@ export async function* processClaudeStream(
     }
   }
 
-  // Finalization
   if (state.hasTextStarted) {
     yield { type: 'text-end', id: state.currentTextId }
   }
