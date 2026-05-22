@@ -442,36 +442,36 @@ const models: Model[] = [
   { name: 'grok-4', inputTypes: InputTypes.commonVision },
 
   // Mistral models on Bedrock
-  { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool calling working. but needs more testing
-  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly }, // mcp tool calling not working
-  { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly }, // does not support tool calls
+  { name: 'mistral.mistral-large-2402-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'mistral.mistral-small-2402-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'mistral.mixtral-8x7b-instruct-v0:1', inputTypes: InputTypes.textOnly },
 
   // Claude models on Bedrock
-  { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
-  { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
-  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision }, // fixed
+  { name: 'anthropic.claude-3-haiku-20240307-v1:0', inputTypes: InputTypes.claudeVision },
+  { name: 'anthropic.claude-3-sonnet-20240229-v1:0', inputTypes: InputTypes.claudeVision },
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', inputTypes: InputTypes.claudeVision },
   // Meta Llama models on Bedrock
-  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // can not access built in plugins
-  { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision }, // can not access built in plugins
+  { name: 'meta.llama3-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'meta.llama3-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.meta.llama3-1-8b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.meta.llama3-1-70b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.meta.llama3-2-1b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.meta.llama3-2-3b-instruct-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'us.meta.llama3-2-11b-instruct-v1:0', inputTypes: InputTypes.commonVision },
+  { name: 'us.meta.llama3-2-90b-instruct-v1:0', inputTypes: InputTypes.commonVision },
 
   // Amazon Nova models
-  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
-  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
-  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision }, // failing tool calls for some built in plugins
+  { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision },
 
   // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly }, // failing tool calls for some built in plugins
+  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly },
 
   // AI21 Labs
-  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly }, // can not access built in plugins
-  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly } // can not access built in plugins
+  { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly },
+  { name: 'ai21.jamba-1-5-large-v1:0', inputTypes: InputTypes.textOnly }
 ]
 
 const modelOptions = models.map(m => m.name)

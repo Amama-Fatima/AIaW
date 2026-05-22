@@ -14,7 +14,11 @@ export async function* processClaudeStream(
 
     const chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes))
 
-    if (chunk.type === 'content_block_start') {
+    if (chunk.type === 'message_start') {
+      const usage = chunk.message?.usage
+      state.inputTokens = usage?.input_tokens || state.inputTokens
+      state.outputTokens = usage?.output_tokens || state.outputTokens
+    } else if (chunk.type === 'content_block_start') {
       if (chunk.content_block?.type === 'text') {
         state.currentTextId = `text-${chunk.index}`
         yield { type: 'text-start', id: state.currentTextId }
@@ -83,6 +87,11 @@ export async function* processClaudeStream(
       if (chunk.delta?.stop_reason) {
         state.lastStopReason = chunk.delta.stop_reason
       }
+
+      if (chunk.usage) {
+        state.inputTokens = chunk.usage.input_tokens || state.inputTokens
+        state.outputTokens = chunk.usage.output_tokens || state.outputTokens
+      }
     }
   }
 
@@ -97,7 +106,11 @@ export async function* processClaudeStream(
     yield {
       type: 'finish',
       finishReason: finalFinishReason,
-      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+      usage: {
+        inputTokens: state.inputTokens,
+        outputTokens: state.outputTokens,
+        totalTokens: state.inputTokens + state.outputTokens
+      }
     }
   }
 }

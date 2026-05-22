@@ -38,6 +38,8 @@ export async function* createBedrockStream(
   const accumulatedToolInput = ''
   const hasEmittedFinish = false
   const toolCallCount = 0
+  const inputTokens = 0
+  const outputTokens = 0
   let lastStopReason: string | undefined
   const warnings: LanguageModelV2CallWarning[] = []
 
@@ -59,6 +61,8 @@ export async function* createBedrockStream(
         accumulatedToolInput,
         hasEmittedFinish,
         toolCallCount,
+        inputTokens,
+        outputTokens,
         lastStopReason
       }
     )
