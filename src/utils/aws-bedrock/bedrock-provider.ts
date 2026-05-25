@@ -55,24 +55,6 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
         delete body._toolMapping
         delete body._useConverseApi
 
-        if (modelIdStartsWith(modelId, 'cohere.')) {
-          const commandParams = {
-            modelId,
-            messages: body.messages,
-            toolConfig: body.toolConfig,
-            inferenceConfig: body.inferenceConfig,
-            system: body.system
-          }
-
-          const command = new ConverseCommand(commandParams)
-
-          const response = await client.send(command)
-
-          const converted = convertBedrockResponse(modelId, response, body, toolMapping)
-
-          return converted
-        }
-
         if ((modelIdStartsWith(modelId, 'amazon.nova') ||
           modelIdStartsWith(modelId, 'mistral.')) && useConverseApi) {
           const commandParams = {
@@ -183,35 +165,6 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
         delete body._toolMapping
         delete body._useConverseApi
-
-        if (modelIdStartsWith(modelId, 'cohere.')) {
-          const commandParams = {
-            modelId,
-            messages: body.messages,
-            toolConfig: body.toolConfig,
-            inferenceConfig: body.inferenceConfig,
-            system: body.system
-          }
-
-          const command = new ConverseStreamCommand(commandParams)
-
-          const response = await client.send(command)
-
-          return {
-            stream: convertAsyncGeneratorToReadableStream(
-              createBedrockStream(
-                modelId,
-                response.stream,
-                toolMapping,
-                settings.tools || []
-              )
-            ),
-            rawCall: {
-              rawPrompt: body,
-              rawSettings: settings
-            }
-          }
-        }
 
         if (modelIdStartsWith(modelId, 'amazon.nova') && useConverseApi) {
           const command = new ConverseStreamCommand({

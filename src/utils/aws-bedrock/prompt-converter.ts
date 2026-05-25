@@ -1,5 +1,4 @@
 import { convertToClaudeFormat } from './claude/convert-prompt-to-claude-format'
-import { convertToCohereFormat } from './cohere/convert-prompt-to-cohere-format'
 
 import { convertToJambaFormat } from './jamba/convert-prompt-to-jamba-format'
 import { convertToLlamaFormat } from './llama/convert-prompt-to-llama-format'
@@ -36,12 +35,9 @@ export function convertPromptToBedrock(
     return result.body
   }
 
-  if (modelIdStartsWith(modelId, 'cohere.')) {
-    const result = convertToCohereFormat(prompt, settings)
-    result.body._toolMapping = result.toolMapping
-    result.body._useConverseApi = result.useConverseApi
-    return result.body
+  if (modelIdStartsWith(modelId, 'ai21.')) {
+    return convertToJambaFormat(prompt, settings)
   }
 
-  return convertToJambaFormat(prompt, settings)
+  throw new Error(`AWS Bedrock model ${modelId} is not currently supported.`)
 }

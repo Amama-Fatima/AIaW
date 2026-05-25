@@ -56,7 +56,6 @@ const SupportedBedrockModelPrefixes = [
   'meta.llama',
   'mistral.',
   'amazon.nova',
-  'cohere.',
   'ai21.'
 ]
 const UnsupportedBedrockChatModelIds = [
@@ -469,10 +468,6 @@ const models: Model[] = [
   { name: 'amazon.nova-micro-v1:0', inputTypes: InputTypes.textOnly },
   { name: 'amazon.nova-lite-v1:0', inputTypes: InputTypes.textOnly },
   { name: 'amazon.nova-pro-v1:0', inputTypes: InputTypes.commonVision },
-
-  // Cohere models
-  { name: 'cohere.command-r-v1:0', inputTypes: InputTypes.textOnly },
-  { name: 'cohere.command-r-plus-v1:0', inputTypes: InputTypes.textOnly },
 
   // AI21 Labs
   { name: 'ai21.jamba-1-5-mini-v1:0', inputTypes: InputTypes.textOnly },

@@ -7,7 +7,6 @@ import { processLlamaStream } from './llama/llama-stream-processor'
 import { processNovaConverseStream } from './nova/nova-stream-processor'
 import { processJambaStream } from './jamba/jamba-stream-processor'
 import { processMistralStream } from './mistral/mistral-stream-processor'
-import { processCohereStream } from './cohere/cohere-stream-processor'
 import { modelIdStartsWith } from './utils'
 
 export async function* createBedrockStream(
@@ -69,12 +68,10 @@ export async function* createBedrockStream(
     return
   }
 
-  if (modelIdStartsWith(modelId, 'cohere.')) {
-    yield* processCohereStream(stream, toolMapping)
+  if (modelIdStartsWith(modelId, 'ai21.')) {
+    yield* processJambaStream(stream, toolMapping)
     return
   }
 
-  if (modelIdStartsWith(modelId, 'ai21.')) {
-    yield* processJambaStream(stream, toolMapping)
-  }
+  throw new Error(`AWS Bedrock model ${modelId} is not currently supported.`)
 }

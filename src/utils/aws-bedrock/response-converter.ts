@@ -2,7 +2,6 @@ import type { StandardResponse, ToolNameMapping } from './types'
 import { convertClaudeResponse } from './claude/convert-claude-response'
 import { convertLlamaResponse } from './llama/convert-llama-response'
 import { convertNovaResponse } from './nova/convert-nova-response'
-import { convertCohereResponse } from './cohere/convert-cohere-response'
 import { convertJambaResponse } from './jamba/convert-jamba-response'
 import { convertMistralResponse } from './mistral/convert-mistral-response'
 import { modelIdStartsWith } from './utils'
@@ -23,12 +22,10 @@ export function convertBedrockResponse(
     partial = convertMistralResponse(responseBody, toolMapping)
   } else if (modelIdStartsWith(modelId, 'amazon.nova')) {
     partial = convertNovaResponse(responseBody, toolMapping)
-  } else if (modelIdStartsWith(modelId, 'cohere.')) {
-    partial = convertCohereResponse(responseBody, toolMapping)
   } else if (modelIdStartsWith(modelId, 'ai21.')) {
     partial = convertJambaResponse(responseBody, toolMapping)
   } else {
-    partial = { content: [], finishReason: 'stop', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }
+    throw new Error(`AWS Bedrock model ${modelId} is not currently supported.`)
   }
 
   return {
