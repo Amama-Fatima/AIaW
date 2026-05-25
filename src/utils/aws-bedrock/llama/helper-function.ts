@@ -36,12 +36,13 @@ export function createLlamaMessagePrompt(msg: any): string {
 
 function createLlamaToolInstructions(tools: any[]): string {
   const toolDescriptions = tools.map((tool: any) => {
+    const schema = tool.inputSchema || tool.parameters
     let paramsStr = '{}'
-    if (tool.parameters) {
-      if (typeof tool.parameters === 'object') {
-        paramsStr = JSON.stringify(tool.parameters, null, 2)
+    if (schema) {
+      if (typeof schema === 'object') {
+        paramsStr = JSON.stringify(schema, null, 2)
       } else {
-        paramsStr = String(tool.parameters)
+        paramsStr = String(schema)
       }
     }
 
