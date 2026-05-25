@@ -34,8 +34,9 @@ export function convertToMistralFormat(
   if (toolConfig) {
     if (!supportsMistralNativeToolConfig(modelId)) {
       throw new Error(
-        `AWS Bedrock model ${modelId} does not support native tool use. ` +
-        'Disable tools/plugins or choose a Mistral model that supports Bedrock tool use, such as Mistral Large or Magistral.'
+        `Tool calling for AWS Bedrock model ${modelId} is not supported in AIaW yet. ` +
+        'You can disable tools/plugins to chat with this model normally. ' +
+        'Tool-calling support for this model is planned; for now, choose a Mistral Large or Magistral model for Bedrock tool use.'
       )
     }
 
