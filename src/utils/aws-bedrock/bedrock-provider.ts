@@ -62,17 +62,11 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
           const command = new ConverseCommand(commandParams)
 
-          try {
-            const response = await client.send(command)
+          const response = await client.send(command)
 
-            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+          const converted = convertBedrockResponse(modelId, response, body, toolMapping)
 
-            return converted
-          } catch (error) {
-            console.error('Bedrock Cohere Error message:', error.message)
-
-            throw error
-          }
+          return converted
         }
 
         if ((modelIdStartsWith(modelId, 'amazon.nova') ||
@@ -87,25 +81,9 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
           const command = new ConverseCommand(commandParams)
 
-          try {
-            const response = await client.send(command)
-            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
-            return converted
-          } catch (error) {
-            if (modelIdStartsWith(modelId, 'mistral.')) {
-              console.error(`[Bedrock Mistral] Converse API call failed: ${error.name}: ${error.message}`)
-              console.error('[Bedrock Mistral] Converse API call failed:', {
-                modelId,
-                errorName: error.name,
-                errorMessage: error.message,
-                errorCode: error.Code || error.code,
-                metadata: error.$metadata
-              })
-            } else {
-              console.error('[Bedrock] Error during Converse API call:', error.message)
-            }
-            throw error
-          }
+          const response = await client.send(command)
+          const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+          return converted
         }
 
         if (modelIdStartsWith(modelId, 'ai21.') && useConverseApi) {
@@ -119,16 +97,11 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
           const command = new ConverseCommand(commandParams)
 
-          try {
-            const response = await client.send(command)
+          const response = await client.send(command)
 
-            const converted = convertBedrockResponse(modelId, response, body, toolMapping)
+          const converted = convertBedrockResponse(modelId, response, body, toolMapping)
 
-            return converted
-          } catch (error) {
-            console.error('Error during Jamba Converse API call:', error.message)
-            throw error
-          }
+          return converted
         }
 
         const command = new InvokeModelCommand({
@@ -138,16 +111,10 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           body: JSON.stringify(body)
         })
 
-        try {
-          const response = await client.send(command)
-          const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-          const converted = convertBedrockResponse(modelId, responseBody, body, toolMapping)
-          console.log('[Bedrock] Invoke API response converted successfully')
-          return converted
-        } catch (error) {
-          console.error('[Bedrock] Error during Invoke API call:', error.message)
-          throw error
-        }
+        const response = await client.send(command)
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body))
+        const converted = convertBedrockResponse(modelId, responseBody, body, toolMapping)
+        return converted
       },
 
       /**
@@ -224,27 +191,21 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
 
           const command = new ConverseStreamCommand(commandParams)
 
-          try {
-            const response = await client.send(command)
+          const response = await client.send(command)
 
-            return {
-              stream: convertAsyncGeneratorToReadableStream(
-                createBedrockStream(
-                  modelId,
-                  response.stream,
-                  toolMapping,
-                  settings.tools || []
-                )
-              ),
-              rawCall: {
-                rawPrompt: body,
-                rawSettings: settings
-              }
+          return {
+            stream: convertAsyncGeneratorToReadableStream(
+              createBedrockStream(
+                modelId,
+                response.stream,
+                toolMapping,
+                settings.tools || []
+              )
+            ),
+            rawCall: {
+              rawPrompt: body,
+              rawSettings: settings
             }
-          } catch (error) {
-            console.error('Bedrock Cohere Stream Error message:', error.message)
-
-            throw error
           }
         }
 
@@ -257,26 +218,21 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
             system: body.system
           })
 
-          try {
-            const response = await client.send(command)
+          const response = await client.send(command)
 
-            return {
-              stream: convertAsyncGeneratorToReadableStream(
-                createBedrockStream(
-                  modelId,
-                  response.stream,
-                  toolMapping,
-                  settings.tools || []
-                )
-              ),
-              rawCall: {
-                rawPrompt: body,
-                rawSettings: settings
-              }
+          return {
+            stream: convertAsyncGeneratorToReadableStream(
+              createBedrockStream(
+                modelId,
+                response.stream,
+                toolMapping,
+                settings.tools || []
+              )
+            ),
+            rawCall: {
+              rawPrompt: body,
+              rawSettings: settings
             }
-          } catch (error) {
-            console.error('Bedrock StreamError during Nova stream:', error.message)
-            throw error
           }
         }
 
@@ -287,26 +243,21 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
           body: JSON.stringify(body)
         })
 
-        try {
-          const response = await client.send(command)
+        const response = await client.send(command)
 
-          return {
-            stream: convertAsyncGeneratorToReadableStream(
-              createBedrockStream(
-                modelId,
-                response.body,
-                toolMapping,
-                settings.tools || []
-              )
-            ),
-            rawCall: {
-              rawPrompt: body,
-              rawSettings: settings
-            }
+        return {
+          stream: convertAsyncGeneratorToReadableStream(
+            createBedrockStream(
+              modelId,
+              response.body,
+              toolMapping,
+              settings.tools || []
+            )
+          ),
+          rawCall: {
+            rawPrompt: body,
+            rawSettings: settings
           }
-        } catch (error) {
-          console.error('[Bedrock Stream] Error during Invoke stream:', error.message)
-          throw error
         }
       }
     }

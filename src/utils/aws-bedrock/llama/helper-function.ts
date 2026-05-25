@@ -132,7 +132,6 @@ function parseToolResult(content: any): any {
   const resultData = content.output?.value || content.result
 
   if (!resultData) {
-    console.warn('No result data found in tool response:', content)
     return 'No data returned'
   }
 

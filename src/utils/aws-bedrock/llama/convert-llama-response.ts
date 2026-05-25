@@ -28,7 +28,7 @@ export function convertLlamaResponse(responseBody: any): any {
           ]
         }
       } catch (e) {
-        console.error('Failed to parse potential tool call JSON:', e)
+        void e
       }
     }
   }
@@ -47,7 +47,6 @@ export function convertLlamaResponse(responseBody: any): any {
     try {
       toolParams = JSON.parse(toolCallMatch[2])
     } catch (e) {
-      console.error('Failed to parse tool parameters:', toolCallMatch[2])
       toolParams = {}
     }
 

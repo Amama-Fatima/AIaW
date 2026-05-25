@@ -96,14 +96,6 @@ export function processToolsForClaude(tools: any[]): ProcessedTools {
   const toolCount = tools.length
   const config = getTruncationConfig(toolCount)
 
-  if (config.shouldTruncate) {
-    console.log(
-      `⚠️ Truncating tool descriptions: ${toolCount} tools detected, ` +
-      `max description: ${config.maxDescriptionLength} chars, ` +
-      `max property desc: ${config.maxPropertyDescLength} chars`
-    )
-  }
-
   const toolMapping: ToolNameMapping = {}
 
   const processedTools = tools.map((tool: any) => {

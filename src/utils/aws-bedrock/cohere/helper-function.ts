@@ -263,8 +263,6 @@ function insertDummyAssistantMessages(prompt: any[]): any[] {
 }
 
 function cleanCohereSchema(schema: any): any {
-  console.log('[Cohere Schema] Cleaning schema')
-
   if (!schema || typeof schema !== 'object') {
     return schema
   }

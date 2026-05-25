@@ -16,31 +16,25 @@ export async function* processCohereStream(
     chunkCount: 0
   }
 
-  try {
-    for await (const event of stream) {
-      state.chunkCount++
+  for await (const event of stream) {
+    state.chunkCount++
 
-      let chunk: any
+    let chunk: any
 
-      if (event.chunk?.bytes) {
-        try {
-          const decoded = new TextDecoder().decode(event.chunk.bytes)
-          chunk = JSON.parse(decoded)
-        } catch (e) {
-          continue
-        }
-      } else if (event.chunk) {
-        chunk = event.chunk
-      } else {
-        chunk = event
+    if (event.chunk?.bytes) {
+      try {
+        const decoded = new TextDecoder().decode(event.chunk.bytes)
+        chunk = JSON.parse(decoded)
+      } catch (e) {
+        continue
       }
-
-      yield* processConverseChunk(chunk, state, toolMapping)
+    } else if (event.chunk) {
+      chunk = event.chunk
+    } else {
+      chunk = event
     }
-  } catch (error) {
-    console.error('Cohere StreamError during stream processing:', error)
 
-    throw error
+    yield* processConverseChunk(chunk, state, toolMapping)
   }
 
   if (state.hasTextStarted) {

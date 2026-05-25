@@ -76,7 +76,7 @@ export async function* processClaudeStream(
             input: JSON.stringify(coercedInput)
           }
         } catch (e) {
-          console.error('❌ Failed to yield tool call:', e)
+          void e
         }
 
         state.accumulatedToolInput = ''

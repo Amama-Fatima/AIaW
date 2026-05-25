@@ -8,17 +8,14 @@ export function convertMessages(prompt: any[]): any[] {
       return {
         role: 'user',
         content: msg.content.map((c: any) => {
-          // Extract tool result from AI SDK's output structure
           const resultData = c.output || c.result
 
           let contentText
           if (resultData && typeof resultData === 'object' && resultData.type === 'content' && resultData.value) {
-            // Format: { type: 'content', value: [{ type: 'text', text: '...' }, ...] }
             contentText = resultData.value
               .map((v: any) => v.type === 'text' ? v.text : JSON.stringify(v))
               .join('\n')
           } else {
-            // Fallback for other formats
             contentText = typeof resultData === 'string' ? resultData : JSON.stringify(resultData)
           }
 
@@ -31,7 +28,6 @@ export function convertMessages(prompt: any[]): any[] {
       }
     }
 
-    // Handle regular user/assistant messages
     return {
       role: msg.role === 'user' ? 'user' : 'assistant',
       content: Array.isArray(msg.content)
@@ -46,7 +42,7 @@ export function convertMessages(prompt: any[]): any[] {
               try {
                 parsedInput = JSON.parse(c.input)
               } catch (e) {
-                console.warn('❌ Failed to parse tool input string:', c.input, e)
+                void e
               }
             } else if (c.input && typeof c.input === 'object') {
               parsedInput = c.input
@@ -82,14 +78,6 @@ export function convertMessages(prompt: any[]): any[] {
   }).filter(Boolean)
 }
 
-/**
- * Filters out messages with empty content
- *
- * Empty messages can cause API errors, so we remove them
- *
- * @param messages - Array of messages
- * @returns Filtered array without empty messages
- */
 export function filterEmptyMessages(messages: any[]): any[] {
   return messages.filter(msg => {
     if (Array.isArray(msg.content)) {
@@ -99,25 +87,6 @@ export function filterEmptyMessages(messages: any[]): any[] {
   })
 }
 
-/**
- * Merges consecutive messages with the same role
- *
- * Claude requires alternating user/assistant roles. If the AI SDK produces
- * consecutive messages with the same role, we must merge them.
- *
- * Example:
- * [
- *   { role: 'user', content: [block1, block2] },
- *   { role: 'user', content: [block3] }
- * ]
- * becomes:
- * [
- *   { role: 'user', content: [block1, block2, block3] }
- * ]
- *
- * @param messages - Array of messages
- * @returns Array with consecutive same-role messages merged
- */
 export function mergeConsecutiveMessages(messages: any[]): any[] {
   const merged = []
 
@@ -148,17 +117,6 @@ export function mergeConsecutiveMessages(messages: any[]): any[] {
   return merged
 }
 
-/**
- * Complete message processing pipeline for Claude
- *
- * Applies all three transformation steps:
- * 1. Convert to Claude format
- * 2. Filter empty messages
- * 3. Merge consecutive same-role messages
- *
- * @param prompt - Raw AI SDK prompt
- * @returns Processed messages ready for Claude API
- */
 export function processMessagesForClaude(prompt: any[]): any[] {
   const converted = convertMessages(prompt)
   const filtered = filterEmptyMessages(converted)
