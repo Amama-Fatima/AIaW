@@ -60,7 +60,13 @@ const SupportedBedrockModelPrefixes = [
 ]
 const UnsupportedBedrockChatModelIds = [
   'amazon.nova-sonic-v1:0',
-  'amazon.nova-2-sonic-v1:0'
+  'amazon.nova-2-sonic-v1:0',
+  // Legacy Bedrock models cannot be used reliably so hiding them from the list.
+  'meta.llama3-2-3b-instruct-v1:0',
+  'meta.llama3-2-1b-instruct-v1:0',
+  'meta.llama3-2-90b-instruct-v1:0',
+  'meta.llama3-2-11b-instruct-v1:0',
+  'anthropic.claude-sonnet-4-20250514-v1:0'
 ]
 
 function getBedrockBaseModelId(modelId: string) {
