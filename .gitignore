@@ -46,3 +46,4 @@ yarn-error.log*
 /docs/.vitepress/cache
 /docs/.vitepress/dist
 .aider*
+note.md

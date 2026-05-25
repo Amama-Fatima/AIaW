@@ -1,4 +1,4 @@
-import { extractBaseToolName, getTruncationConfig, truncateText } from './utils'
+import { extractBaseToolName } from './utils'
 import type { ToolNameMapping } from './types'
 
 export interface ProcessedTools {
@@ -52,19 +52,7 @@ function normalizeIntegerConstraints(properties: any): void {
   })
 }
 
-function truncatePropertyDescriptions(properties: any, maxLength: number): void {
-  Object.values(properties).forEach((propSchema: any) => {
-    if (propSchema.description) {
-      propSchema.description = truncateText(propSchema.description, maxLength)
-    }
-  })
-}
-
-function createCleanSchema(
-  inputSchema: any,
-  shouldTruncate: boolean,
-  maxPropertyDescLength: number
-): any {
+function createCleanSchema(inputSchema: any): any {
   const requiredFields = identifyRequiredBooleans(
     inputSchema.properties || {},
     inputSchema.required || []
@@ -75,10 +63,6 @@ function createCleanSchema(
     properties: inputSchema.properties,
     required: requiredFields,
     additionalProperties: inputSchema.additionalProperties
-  }
-
-  if (shouldTruncate && cleanSchema.properties) {
-    truncatePropertyDescriptions(cleanSchema.properties, maxPropertyDescLength)
   }
 
   if (cleanSchema.properties) {
@@ -93,31 +77,19 @@ export function processToolsForClaude(tools: any[]): ProcessedTools {
     return { tools: [], toolMapping: {} }
   }
 
-  const toolCount = tools.length
-  const config = getTruncationConfig(toolCount)
-
   const toolMapping: ToolNameMapping = {}
 
   const processedTools = tools.map((tool: any) => {
     const inputSchema = extractInputSchema(tool)
-    const cleanSchema = createCleanSchema(
-      inputSchema,
-      config.shouldTruncate,
-      config.maxPropertyDescLength
-    )
+    const cleanSchema = createCleanSchema(inputSchema)
 
     const baseName = extractBaseToolName(tool.name)
 
     toolMapping[baseName] = tool.name
 
-    const description = truncateText(
-      tool.description || '',
-      config.maxDescriptionLength
-    )
-
     return {
       name: baseName,
-      description,
+      description: tool.description,
       input_schema: cleanSchema
     }
   })

@@ -13,6 +13,8 @@ import { createBedrockStream } from './stream-processor'
 import { convertAsyncGeneratorToReadableStream, modelIdStartsWith } from './utils'
 import type { BedrockConfig, BedrockModelFactory } from './types'
 
+const bedrockErrorMessages = new WeakMap<any, Promise<string | undefined>>()
+
 export function createBedrock(config: BedrockConfig): BedrockModelFactory {
   if (!config.accessKeyId || !config.secretAccessKey || !config.region) {
     throw new Error(
@@ -28,6 +30,8 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
       secretAccessKey: config.secretAccessKey.trim()
     }
   })
+
+  attachBedrockErrorMessageMiddleware(client)
 
   return (modelId: string): LanguageModelV2 => {
     return {
@@ -262,4 +266,108 @@ export function createBedrock(config: BedrockConfig): BedrockModelFactory {
       }
     }
   }
+}
+
+function attachBedrockErrorMessageMiddleware(client: BedrockRuntimeClient): void {
+  const requestHandler = client.config.requestHandler as any
+  const originalHandle = requestHandler.handle.bind(requestHandler)
+
+  requestHandler.handle = async (...args: any[]) => {
+    const result = await originalHandle(...args)
+    const detailedMessage = readBedrockErrorMessage(result.response)
+
+    if (detailedMessage) {
+      bedrockErrorMessages.set(result.response, detailedMessage)
+    }
+
+    return result
+  }
+
+  client.middlewareStack.add(
+    (next: any) => async (args: any) => {
+      try {
+        return await next(args)
+      } catch (error) {
+        const message = await bedrockErrorMessages.get((error as any)?.$response)
+        if (message && error instanceof Error) {
+          error.message = message
+        }
+        throw error
+      }
+    },
+    {
+      name: 'bedrockErrorMessageMiddleware',
+      step: 'deserialize',
+      priority: 'high'
+    }
+  )
+}
+
+async function readBedrockErrorMessage(response: any): Promise<string | undefined> {
+  if (!response || response.statusCode < 400 || !response.body) {
+    return undefined
+  }
+
+  const body = response.body
+  let bodyForMessage = body
+
+  if (typeof body.tee === 'function') {
+    const [bodyForSdk, clonedBody] = body.tee()
+    response.body = bodyForSdk
+    bodyForMessage = clonedBody
+  } else if (typeof body.getReader === 'function') {
+    return undefined
+  }
+
+  try {
+    const text = await readBodyText(bodyForMessage)
+    if (!text) return undefined
+
+    const parsed = JSON.parse(text)
+    return parsed.message || parsed.Message || parsed.error?.message
+  } catch {
+    return undefined
+  }
+}
+
+async function readBodyText(body: any): Promise<string | undefined> {
+  if (typeof body === 'string') {
+    return body
+  }
+
+  if (body instanceof Uint8Array) {
+    return new TextDecoder().decode(body)
+  }
+
+  if (body instanceof ArrayBuffer) {
+    return new TextDecoder().decode(body)
+  }
+
+  if (typeof Blob !== 'undefined' && body instanceof Blob) {
+    return await body.text()
+  }
+
+  if (typeof body.getReader === 'function') {
+    const reader = body.getReader()
+    const chunks: Uint8Array[] = []
+    let totalLength = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      totalLength += value.length
+    }
+
+    const bytes = new Uint8Array(totalLength)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.length
+    }
+
+    return new TextDecoder().decode(bytes)
+  }
+
+  return undefined
 }

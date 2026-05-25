@@ -20,12 +20,6 @@ export interface BedrockRequestBody {
   _toolMapping?: ToolNameMapping
 }
 
-export interface TruncationConfig {
-  shouldTruncate: boolean
-  maxDescriptionLength: number
-  maxPropertyDescLength: number
-}
-
 export interface ConvertedPrompt {
   body: BedrockRequestBody
   toolMapping?: ToolNameMapping
