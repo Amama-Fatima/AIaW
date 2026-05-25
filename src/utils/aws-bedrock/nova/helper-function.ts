@@ -47,7 +47,7 @@ export function createNovaToolConfig(tools: any[]): { toolConfig?: any; toolMapp
           toolMapping[safeName] = tool.name
         }
 
-        const originalSchema = tool.inputSchema || tool.parameters
+        const originalSchema = extractNovaInputSchema(tool)
         const cleanedSchema = cleanNovaSchema(originalSchema)
 
         return {
@@ -99,8 +99,19 @@ function convertNovaContentBlock(c: any): any {
   return c
 }
 
+function extractNovaInputSchema(tool: any): any {
+  const inputSchema = tool.inputSchema || tool.parameters
+
+  if (inputSchema?.jsonSchema) {
+    return inputSchema.jsonSchema
+  }
+
+  return inputSchema
+}
+
 /**
- * Nova only supports: type, properties, required at top level
+ * Nova's Converse validator accepts JSON Schema, but rejects malformed schema
+ * wrappers and open object fields that are represented as empty objects.
  */
 function cleanNovaSchema(schema: any): any {
   if (!schema || typeof schema !== 'object') {
@@ -124,6 +135,12 @@ function cleanNovaSchema(schema: any): any {
     cleaned.required = schema.required
   }
 
+  if (schema.additionalProperties !== undefined) {
+    cleaned.additionalProperties = schema.additionalProperties
+  } else if (cleaned.type === 'object' && !cleaned.properties) {
+    cleaned.additionalProperties = true
+  }
+
   return cleaned
 }
 
@@ -137,7 +154,7 @@ function cleanNovaSchemaProperty(prop: any): any {
 
   const cleaned: any = {}
 
-  const allowedFields = ['type', 'description', 'enum', 'items', 'properties', 'required']
+  const allowedFields = ['type', 'description', 'enum', 'items', 'properties', 'required', 'additionalProperties']
 
   for (const field of allowedFields) {
     if (prop[field] !== undefined) {
@@ -148,10 +165,16 @@ function cleanNovaSchemaProperty(prop: any): any {
         }
       } else if (field === 'items') {
         cleaned[field] = cleanNovaSchemaProperty(prop[field])
+      } else if (field === 'additionalProperties' && typeof prop[field] === 'object') {
+        cleaned[field] = cleanNovaSchemaProperty(prop[field])
       } else {
         cleaned[field] = prop[field]
       }
     }
+  }
+
+  if (cleaned.type === 'object' && !cleaned.properties && cleaned.additionalProperties === undefined) {
+    cleaned.additionalProperties = true
   }
 
   return cleaned
@@ -167,7 +190,7 @@ function createNovaToolResultContent(toolResult: any): any[] {
       .filter(Boolean)
       .join('\n')
 
-    return textContent ? stringToNovaContent(textContent) : [{ json: resultData }]
+    return textContent ? stringToNovaContent(textContent) : resultToNovaContent(resultData)
   }
 
   if (typeof resultData === 'string') {
@@ -175,10 +198,10 @@ function createNovaToolResultContent(toolResult: any): any[] {
   }
 
   if (resultData && typeof resultData === 'object') {
-    return [{ json: resultData }]
+    return resultToNovaContent(resultData)
   }
 
-  return [{ text: String(resultData || '') }]
+  return [{ text: String(resultData ?? '') }]
 }
 
 function extractToolResultData(toolResult: any): any {
@@ -191,8 +214,16 @@ function extractToolResultData(toolResult: any): any {
 
 function stringToNovaContent(text: string): any[] {
   try {
-    return [{ json: JSON.parse(text) }]
+    return resultToNovaContent(JSON.parse(text), text)
   } catch {
     return [{ text }]
   }
+}
+
+function resultToNovaContent(value: any, fallbackText = JSON.stringify(value)): any[] {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return [{ json: value }]
+  }
+
+  return [{ text: fallbackText ?? String(value ?? '') }]
 }

@@ -10,21 +10,6 @@ import { processMistralStream } from './mistral/mistral-stream-processor'
 import { processCohereStream } from './cohere/cohere-stream-processor'
 import { modelIdStartsWith } from './utils'
 
-/**
- * Creates an async generator that yields AI SDK stream parts from Bedrock stream
- *
- * Handles different event types from Claude's streaming API:
- * - content_block_start: Begins a new text or tool block
- * - content_block_delta: Streams incremental text or tool input JSON
- * - content_block_stop: Ends current block
- * - message_delta: Provides stop reason
- * - message_stop: Signals end of stream
- *
- * @param modelId - Bedrock model identifier
- * @param stream - Bedrock response stream
- * @param toolMapping - Maps base tool names to full names
- * @param toolSchemas - Tool schemas for type coercion
- */
 export async function* createBedrockStream(
   modelId: string,
   stream: any,

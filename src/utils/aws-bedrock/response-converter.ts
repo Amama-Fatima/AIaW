@@ -7,15 +7,6 @@ import { convertJambaResponse } from './jamba/convert-jamba-response'
 import { convertMistralResponse } from './mistral/convert-mistral-response'
 import { modelIdStartsWith } from './utils'
 
-/**
- * Main response converter - routes to model-specific converter
- *
- * @param modelId - Bedrock model identifier
- * @param responseBody - Raw response from Bedrock API
- * @param requestBody - Original request body
- * @param toolMapping - Tool name mapping
- * @returns Standardized AI SDK response
- */
 export function convertBedrockResponse(
   modelId: string,
   responseBody: any,

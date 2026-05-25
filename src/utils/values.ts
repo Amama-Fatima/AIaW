@@ -59,6 +59,10 @@ const SupportedBedrockModelPrefixes = [
   'cohere.',
   'ai21.'
 ]
+const UnsupportedBedrockChatModelIds = [
+  'amazon.nova-sonic-v1:0',
+  'amazon.nova-2-sonic-v1:0'
+]
 
 function getBedrockBaseModelId(modelId: string) {
   const [prefix, ...rest] = modelId.split('.')
@@ -70,7 +74,8 @@ function getBedrockBaseModelId(modelId: string) {
 
 function isSupportedBedrockModelId(modelId: string) {
   const baseModelId = getBedrockBaseModelId(modelId)
-  return SupportedBedrockModelPrefixes.some(prefix => baseModelId.startsWith(prefix))
+  return !UnsupportedBedrockChatModelIds.includes(baseModelId) &&
+    SupportedBedrockModelPrefixes.some(prefix => baseModelId.startsWith(prefix))
 }
 
 async function openaiGetModelList({ baseURL, apiKey }: ApiProviderSettings) {

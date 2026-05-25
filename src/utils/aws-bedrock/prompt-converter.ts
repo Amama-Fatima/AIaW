@@ -8,22 +8,6 @@ import { convertToNovaFormat } from './nova/convert-prompt-to-nova-format'
 import type { BedrockRequestBody } from './types'
 import { modelIdStartsWith } from './utils'
 
-/**
- * Converts AI SDK prompt to the appropriate Bedrock model format
- *
- * Routes to model-specific converters based on modelId prefix:
- * - anthropic.* -> Claude format
- * - meta.llama* -> Llama chat template
- * - mistral.* -> Mistral instruction format
- * - amazon.nova* -> Nova structured format
- * - cohere.* -> Cohere Command R format
- * - * -> Generic text format
- *
- * @param modelId - Bedrock model identifier
- * @param prompt - AI SDK message array
- * @param settings - Generation settings
- * @returns Request body with optional tool mapping
- */
 export function convertPromptToBedrock(
   modelId: string,
   prompt: any[],

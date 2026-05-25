@@ -1,14 +1,3 @@
-/**
- * Converts AI SDK messages to Claude's format
- *
- * Handles:
- * - System messages (extracted separately)
- * - Tool results (converted to user messages with tool_result blocks)
- * - User/Assistant messages with text, tool-call, and image content
- *
- * @param prompt - Array of AI SDK messages
- * @returns Array of Claude-formatted messages (excludes system)
- */
 export function convertMessages(prompt: any[]): any[] {
   return prompt.map((msg: any) => {
     if (msg.role === 'system') {
