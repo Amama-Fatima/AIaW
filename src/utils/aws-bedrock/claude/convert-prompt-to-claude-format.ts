@@ -1,5 +1,5 @@
-import { processMessagesForClaude } from '../message-processing'
-import { processToolsForClaude } from '../tool-schema'
+import { processMessagesForClaude } from './message-processing'
+import { processToolsForClaude } from './tool-schema'
 import { ConvertedPrompt } from '../types'
 import { getMaxOutputTokens } from '../utils'
 

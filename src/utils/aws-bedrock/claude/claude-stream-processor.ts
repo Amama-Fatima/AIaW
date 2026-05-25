@@ -1,5 +1,5 @@
 import type { LanguageModelV2StreamPart } from '@ai-sdk/provider'
-import { coerceToolInput } from '../tool-coercion'
+import { coerceToolInput } from './tool-coercion'
 import { ToolNameMapping } from '../types'
 import { mapClaudeStopReason } from '../utils'
 

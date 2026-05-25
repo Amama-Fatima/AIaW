@@ -1,5 +1,5 @@
-import { extractBaseToolName } from './utils'
-import type { ToolNameMapping } from './types'
+import { extractBaseToolName } from '../utils'
+import type { ToolNameMapping } from '../types'
 
 export interface ProcessedTools {
   tools: any[]
